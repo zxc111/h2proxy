@@ -26,7 +26,10 @@ func main() {
 			}
 		}),
 	}
-	server.ListenAndServeTLS("localhost.cert", "localhost.key")
+	// require cert.
+	// generate cert for test:
+	// openssl req -new -x509 -days 365 -key test1.key -out test1.crt
+	server.ListenAndServeTLS("test1.crt", "test1.key")
 }
 
 type flushWriter struct {
