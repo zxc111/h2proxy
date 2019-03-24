@@ -14,11 +14,6 @@ import (
 	"os"
 )
 
-type targetInfo struct {
-	host string
-	port string
-}
-
 var (
 	proxy     string
 	local     string
@@ -106,7 +101,6 @@ func ConnectMethod(from net.Conn, remoteAddr string) {
 
 	r, w := io.Pipe()
 
-	//remoteAddr := "http://216.58.200.14:443"
 	log.Println(remoteAddr)
 	req, err := http.NewRequest(
 		http.MethodConnect,
@@ -194,7 +188,6 @@ func main() {
 	server := &http.Server{
 		Addr: local,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			//fmt.Println("connect 1")
 			switch r.Method {
 			case http.MethodConnect:
 
