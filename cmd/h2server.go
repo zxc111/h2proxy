@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"fmt"
+	"github.com/zxc111/h2proxy"
 	"io"
 	"log"
 	"net"
@@ -10,14 +12,26 @@ import (
 	"strings"
 )
 
+var (
+	addr, caKey, caCrt string
+	user               *h2proxy.UserInfo
+	needAuth bool
+)
+
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	addr, caKey, caCrt, needAuth, user = h2proxy.ParseServerConfig()
 }
 
 func main() {
 	server := &http.Server{
-		Addr: ":8080",
+		Addr: addr,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if needAuth && !h2proxy.CheckAuth(user, r) {
+				// TODO check auth
+				fmt.Fprint(w, "ok")
+				return
+			}
 			switch r.Method {
 			case http.MethodConnect:
 				connect(w, r)
@@ -26,10 +40,13 @@ func main() {
 			}
 		}),
 	}
+
 	// require cert.
 	// generate cert for test:
 	// openssl req -new -x509 -days 365 -key test1.key -out test1.crt
-	server.ListenAndServeTLS("test1.crt", "test1.key")
+	if err := server.ListenAndServeTLS(caCrt, caKey); err != nil {
+		log.Fatal(err)
+	}
 }
 
 type flushWriter struct {

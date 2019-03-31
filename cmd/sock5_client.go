@@ -20,14 +20,13 @@ type targetInfo struct {
 }
 
 var (
-	proxy     string
-	local     string
+	proxy, local string
+	userInfo     *h2proxy.UserInfo
 )
 
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
-	local, proxy = h2proxy.ParseConfig()
+	local, proxy, user = h2proxy.ParseConfig()
 }
 
 func init() {

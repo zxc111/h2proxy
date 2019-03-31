@@ -13,13 +13,14 @@ import (
 )
 
 var (
-	proxy string
-	local string
+	proxy, local string
+	user *h2proxy.UserInfo
+	needAuth bool
 )
 
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	local, proxy = h2proxy.ParseConfig()
+	local, proxy, needAuth, user = h2proxy.ParseConfig()
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -67,6 +68,7 @@ func ConnectMethod(from net.Conn, remoteAddr string) {
 	if err != nil {
 		log.Println(err)
 	}
+
 	resp, err := tr.RoundTrip(req)
 
 	if err != nil {
