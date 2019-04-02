@@ -57,7 +57,7 @@ func ParseConfig() (local, proxy string, needAuth bool, user *UserInfo) {
 		os.Exit(1)
 	}
 	if localPort == "" {
-		log.Println("local_port is requred")
+		log.Println("local_port is required")
 		flag.Usage()
 
 		os.Exit(1)
@@ -92,21 +92,21 @@ func ParseServerConfig() (server, caKey, caCrt string, needAuth bool, user *User
 		os.Exit(1)
 	}
 	if port == "" {
-		log.Println("port is requred")
+		log.Println("port is required")
 		flag.Usage()
 
 		os.Exit(1)
 	}
 
 	if caKey == "" {
-		log.Println("cert_key is requred")
+		log.Println("cert_key is required")
 		flag.Usage()
 
 		os.Exit(1)
 	}
 
 	if caCrt == "" {
-		log.Println("cert_crt is requred")
+		log.Println("cert_crt is required")
 		flag.Usage()
 
 		os.Exit(1)
