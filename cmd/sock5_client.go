@@ -19,17 +19,6 @@ type targetInfo struct {
 	port string
 }
 
-var (
-	proxy, local string
-	user     *h2proxy.UserInfo
-	needAuth     bool
-)
-
-func init() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	local, proxy, needAuth, user = h2proxy.ParseConfig()
-}
-
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 }
@@ -168,18 +157,8 @@ func buildDestConn(conn net.Conn) (*targetInfo, error) {
 
 	return &target, nil
 }
-func transfer(destination io.WriteCloser, source io.ReadCloser) {
-	// _, err := io.Copy(destination, source)
-	body := make([]byte, 102400)
-	n, err := source.Read(body)
-	if err != nil {
-		log.Println(err)
-	}
-	log.Println(string(body[:n]))
-	destination.Write(body[:n])
-}
 
-func handleConnection(conn net.Conn) {
+func handleConnection(conn net.Conn, config *h2proxy.ClientConfig) {
 	defer conn.Close()
 	err := auth(conn)
 	if err != nil {
@@ -191,10 +170,7 @@ func handleConnection(conn net.Conn) {
 	}
 
 	remoteAddr := "http://" + dest.host + ":" + dest.port
-	ToHttpProxy(conn, proxy, remoteAddr)
-
-	//go transfer(destConn.writer, conn)
-	//go transfer(conn, destConn.reader)
+	ToHttpProxy(conn, config.Proxy, remoteAddr)
 }
 
 func ToHttpProxy(from net.Conn, proxy, remoteAddr string) {
@@ -232,8 +208,8 @@ func ToHttpProxy(from net.Conn, proxy, remoteAddr string) {
 	io.Copy(from, resp.Body)
 }
 
-func main() {
-	ln, err := net.Listen("tcp", local)
+func startSocks5(config *h2proxy.ClientConfig) {
+	ln, err := net.Listen("tcp", config.Local)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -242,6 +218,6 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		go handleConnection(conn)
+		go handleConnection(conn, config)
 	}
 }

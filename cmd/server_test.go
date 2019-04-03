@@ -1,39 +1,106 @@
 package main
 
 import (
+	"bytes"
+	"crypto/tls"
 	"fmt"
 	"github.com/zxc111/h2proxy"
+	"io"
+	"log"
+	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
+	"os"
 	"testing"
+	"time"
 )
 
 func TestServer(t *testing.T) {
-	server := &http.Server{
-		Addr: addr,
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if needAuth && !h2proxy.CheckAuth(user, r) {
-				// TODO check auth
-				fmt.Fprint(w, "ok")
-				return
-			}
-			switch r.Method {
-			case http.MethodConnect:
-				connect(w, r)
-			default:
-				get(w, r)
-			}
-		}),
-	}
+	addr := "localhost:3010"
 
-	// require cert.
-	// generate cert for test:
-	// openssl req -new -x509 -days 365 -key test1.key -out test1.crt
-	if err := server.ListenAndServeTLS(crt, key); err != nil {
-		t.Fatal(err)
+	go func() {
+		ca, err := tls.X509KeyPair([]byte(crt), []byte(key))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		server := &http.Server{
+			Addr: addr,
+			TLSConfig: &tls.Config{
+				Certificates:       []tls.Certificate{ca},
+				InsecureSkipVerify: true,
+			},
+			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				//if needAuth && !h2proxy.CheckAuth(user, r) {
+				//	// TODO check auth
+				//	fmt.Fprint(w, "ok")
+				//	return
+				//}
+				switch r.Method {
+				case http.MethodConnect:
+					connectMethod(w, r)
+				default:
+					get(w, r)
+				}
+			}),
+		}
+
+		// require cert.
+		// generate cert for test:
+		// openssl req -new -x509 -days 365 -key test1.key -out test1.crt
+		fmt.Println(123)
+		if err := server.ListenAndServe(); err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(321)
+	}()
+	go func() {
+		net.Listen("tcp", "localhost:3006")
+	}()
+	time.Sleep(time.Second)
+	req := &http.Request{
+		URL: &url.URL{
+			Scheme: "http",
+			Host:   "www.baidu.com",
+		},
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Method:     http.MethodGet,
+		Host:       "www.baidu.com",
 	}
+	dump, _ := httputil.DumpRequest(req, true)
+	t.Log(string(dump))
+	tr := h2proxy.NewTransport(addr)
+
+	remoteAddr := "http://127.0.0.1:3010"
+	log.Println(remoteAddr)
+
+	req, err := http.NewRequest(
+		http.MethodGet,
+		remoteAddr,
+		bytes.NewBuffer(dump),
+	)
+
+	//req.Header = from.Header
+	if err != nil {
+		log.Println(err)
+	}
+	resp, err := tr.RoundTrip(req)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		log.Println(resp.StatusCode)
+		io.Copy(os.Stdout, resp.Body)
+		log.Println("Connect Proxy Server Error")
+		return
+	}
+	time.Sleep(2 * time.Second)
 }
-
-
 
 var key = `-----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCoTcpQVpC4J5OH
@@ -84,5 +151,3 @@ TQl3GmL13n1MooSzyvHZOfOfVHufZe1JDZyApsfUxCE+DNpeDmZhP/k24rlL+xxy
 UlmSMAR8lmZoc4voVh2/EnaQiBd7+46kEGLEqz/qB06HbNrs9mqMYxO6UbdE0qbH
 sgGLrMCt
 -----END CERTIFICATE-----`
-
-

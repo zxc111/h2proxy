@@ -12,18 +12,12 @@ import (
 	"os"
 )
 
-var (
-	proxy, local string
-	user *h2proxy.UserInfo
-	needAuth bool
-)
-
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	local, proxy, needAuth, user = h2proxy.ParseConfig()
+	//local, proxy, needAuth, user = h2proxy.ParseClientConfig()
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
+func handler(w http.ResponseWriter, r *http.Request, config *h2proxy.ClientConfig) {
 	switch r.Method {
 	case http.MethodConnect:
 		hijacker, _ := w.(http.Hijacker)
@@ -35,7 +29,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		defer clientConn.Close()
 
 		remote := "http://" + r.URL.Host
-		ConnectMethod(clientConn, remote)
+		ConnectMethod(clientConn, remote, config)
 	default:
 		remote := r.URL.Scheme + "://" + r.URL.Host
 
@@ -47,14 +41,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 		defer clientConn.Close()
 
-		GetMethod(r, remote, clientConn)
+		GetMethod(r, remote, clientConn, config)
 	}
 }
 
-// connect method (for https, create tunnel)
-func ConnectMethod(from net.Conn, remoteAddr string) {
+// connectMethod method (for https, create tunnel)
+func ConnectMethod(from net.Conn, remoteAddr string, config *h2proxy.ClientConfig) {
 
-	tr := h2proxy.NewTransport(proxy)
+	tr := h2proxy.NewTransport(config.Proxy)
 
 	r, w := io.Pipe()
 
@@ -89,14 +83,14 @@ func ConnectMethod(from net.Conn, remoteAddr string) {
 	io.Copy(from, resp.Body)
 }
 
-// not connect method (http not https,don't need tunnel)
-func GetMethod(from *http.Request, remote string, to net.Conn) {
+// not connectMethod method (http not https,don't need tunnel)
+func GetMethod(from *http.Request, remote string, to net.Conn, config *h2proxy.ClientConfig) {
 
 	dump, err := httputil.DumpRequest(from, true)
 	if err != nil {
 		log.Println(err)
 	}
-	tr := h2proxy.NewTransport(proxy)
+	tr := h2proxy.NewTransport(config.Proxy)
 
 	remoteAddr := remote
 	log.Println(remoteAddr)
@@ -128,21 +122,21 @@ func GetMethod(from *http.Request, remote string, to net.Conn) {
 
 }
 
-func main() {
+func startHttp(config *h2proxy.ClientConfig) {
 
-	log.Printf("local: %s", local)
-	log.Printf("remote: %s", proxy)
+	log.Printf("local: %s", config.Local)
+	log.Printf("remote: %s", config.Proxy)
 	server := &http.Server{
-		Addr: local,
+		Addr: config.Local,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.Method {
 			case http.MethodConnect:
 
-				fmt.Println("connect")
-				handler(w, r)
+				fmt.Println("connectMethod")
+				handler(w, r, config)
 			default:
 
-				handler(w, r)
+				handler(w, r, config)
 			}
 		}),
 	}

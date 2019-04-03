@@ -12,29 +12,19 @@ import (
 	"strings"
 )
 
-var (
-	addr, caKey, caCrt string
-	user               *h2proxy.UserInfo
-	needAuth bool
-)
 
-func init() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	addr, caKey, caCrt, needAuth, user = h2proxy.ParseServerConfig()
-}
-
-func main() {
+func StartServer(config *h2proxy.ServerConfig) {
 	server := &http.Server{
-		Addr: addr,
+		Addr: config.Server,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if needAuth && !h2proxy.CheckAuth(user, r) {
+			if config.NeedAuth && !h2proxy.CheckAuth(config.User, r) {
 				// TODO check auth
 				fmt.Fprint(w, "ok")
 				return
 			}
 			switch r.Method {
 			case http.MethodConnect:
-				connect(w, r)
+				connectMethod(w, r)
 			default:
 				get(w, r)
 			}
@@ -44,7 +34,7 @@ func main() {
 	// require cert.
 	// generate cert for test:
 	// openssl req -new -x509 -days 365 -key test1.key -out test1.crt
-	if err := server.ListenAndServeTLS(caCrt, caKey); err != nil {
+	if err := server.ListenAndServeTLS(config.CaCrt, config.CaKey); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -61,7 +51,7 @@ func (fw flushWriter) Write(p []byte) (n int, err error) {
 	return
 }
 
-func connect(w http.ResponseWriter, r *http.Request) {
+func connectMethod(w http.ResponseWriter, r *http.Request) {
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()
 	} else {
