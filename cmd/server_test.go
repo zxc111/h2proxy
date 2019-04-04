@@ -1,19 +1,16 @@
 package main
 
 import (
-	"bytes"
 	"crypto/tls"
 	"fmt"
 	"github.com/zxc111/h2proxy"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"os"
 	"testing"
-	"time"
 )
 
 func TestServer(t *testing.T) {
@@ -30,6 +27,7 @@ func TestServer(t *testing.T) {
 			TLSConfig: &tls.Config{
 				Certificates:       []tls.Certificate{ca},
 				InsecureSkipVerify: true,
+				NextProtos:         []string{"h2", "h2c", "h2i"},
 			},
 			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				//if needAuth && !h2proxy.CheckAuth(user, r) {
@@ -42,50 +40,49 @@ func TestServer(t *testing.T) {
 					connectMethod(w, r)
 				default:
 					get(w, r)
+					//fmt.Fprint(w, "123")
+
 				}
 			}),
 		}
+		//http2.ConfigureServer(server, &http2.Server{
+		//	NewWriteScheduler: func() http2.WriteScheduler {
+		//		return http2.NewPriorityWriteScheduler(nil)
+		//	},
+		//})
 
 		// require cert.
 		// generate cert for test:
 		// openssl req -new -x509 -days 365 -key test1.key -out test1.crt
 		fmt.Println(123)
-		if err := server.ListenAndServe(); err != nil {
-			fmt.Println(err)
-		}
+		//if err := server.ListenAndServe(); err != nil {
+		//	fmt.Println(err)
+		//}
+		log.Fatal(server.ListenAndServeTLS("", ""))
 		fmt.Println(321)
 	}()
 	go func() {
 		net.Listen("tcp", "localhost:3006")
 	}()
-	time.Sleep(time.Second)
-	req := &http.Request{
-		URL: &url.URL{
-			Scheme: "http",
-			Host:   "www.baidu.com",
-		},
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		Method:     http.MethodGet,
-		Host:       "www.baidu.com",
-	}
-	dump, _ := httputil.DumpRequest(req, true)
-	t.Log(string(dump))
+
 	tr := h2proxy.NewTransport(addr)
 
-	remoteAddr := "http://127.0.0.1:3010"
+	remoteAddr := "http://www.baidu.com/s?ie=utf-8&f=8&rsv_bp=1&rsv_idx=1&tn=baidu&wd=test&rsv_pq=b490c49a0000626b&rsv_t=132ffj2JcJlsvnHjGuDY6aR7woxPXQeCGImDWkR73XJBOuQrytnW9Racfew&rqlang=cn&rsv_enter=1&rsv_sug3=4&rsv_sug1=4&rsv_sug7=100&rsv_sug2=0&inputT=764&rsv_sug4=764"
 	log.Println(remoteAddr)
 
 	req, err := http.NewRequest(
 		http.MethodGet,
 		remoteAddr,
-		bytes.NewBuffer(dump),
+		nil,
 	)
+	req.Header.Set("User-Agent", "curl/7.54.0")
+	req.Header.Set("Accept", "*/*")
 
 	//req.Header = from.Header
 	if err != nil {
 		log.Println(err)
 	}
+	tr.DisableCompression = true
 	resp, err := tr.RoundTrip(req)
 	if err != nil {
 		log.Println(err)
@@ -97,9 +94,14 @@ func TestServer(t *testing.T) {
 		log.Println(resp.StatusCode)
 		io.Copy(os.Stdout, resp.Body)
 		log.Println("Connect Proxy Server Error")
+		t.Fatal(err)
 		return
 	}
-	time.Sleep(2 * time.Second)
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(string(b))
 }
 
 var key = `-----BEGIN PRIVATE KEY-----
@@ -151,3 +153,13 @@ TQl3GmL13n1MooSzyvHZOfOfVHufZe1JDZyApsfUxCE+DNpeDmZhP/k24rlL+xxy
 UlmSMAR8lmZoc4voVh2/EnaQiBd7+46kEGLEqz/qB06HbNrs9mqMYxO6UbdE0qbH
 sgGLrMCt
 -----END CERTIFICATE-----`
+
+func TestConn(t *testing.T) {
+	conn, _ := net.Dial("tcp", "www.baidu.com:80")
+	a := `GET http://baidu.com/ HTTP/1.1\r\nHost: baidu.com\r\nUser-Agent: curl/7.54.0\r\nAccept: */*\r\n\r\n`
+	fmt.Printf(a)
+	conn.Write([]byte(a))
+	res, _ := ioutil.ReadAll(conn)
+	fmt.Println(string(res))
+
+}

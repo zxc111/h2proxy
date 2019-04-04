@@ -12,7 +12,6 @@ import (
 	"strings"
 )
 
-
 func StartServer(config *h2proxy.ServerConfig) {
 	server := &http.Server{
 		Addr: config.Server,
@@ -85,23 +84,20 @@ func get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dump, err := httputil.DumpRequest(r, true)
-	if err != nil {
-		log.Println(err)
-	}
-	if strings.Count(r.Host, ":") == 0 {
-		r.Host += ":80"
-	}
-	conn, err := net.Dial("tcp", r.Host)
-	if err != nil {
-		log.Println(err)
-		return
-	}
 	to := flushWriter{w}
-	dump = bytes.Replace(dump, []byte("HTTP/2.0"), []byte("HTTP/1.1"), -1)
-	log.Println(string(dump))
 
-	defer conn.Close()
-	go io.Copy(conn, bytes.NewBuffer(dump))
-	io.Copy(to, conn)
+	req, _ := http.NewRequest(
+		r.Method,
+		"http://"+r.Host+r.RequestURI,
+		r.Body,
+	)
+	cli := http.Client{}
+	req.Header = r.Header
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	res, _ := httputil.DumpResponse(resp, true)
+	io.Copy(to, bytes.NewBuffer(res))
 }
