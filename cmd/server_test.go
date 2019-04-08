@@ -16,7 +16,7 @@ import (
 func TestServer(t *testing.T) {
 	addr := "localhost:3010"
 
-	go func() {
+		go func() {
 		ca, err := tls.X509KeyPair([]byte(crt), []byte(key))
 		if err != nil {
 			t.Fatal(err)
@@ -101,7 +101,7 @@ func TestServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(string(b))
+	t.Log(string(b))
 }
 
 var key = `-----BEGIN PRIVATE KEY-----

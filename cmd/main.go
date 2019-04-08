@@ -13,13 +13,13 @@ func main() {
 	category, conf := h2proxy.ParseConfig()
 	switch category {
 	case "http":
-		config := conf.(h2proxy.ClientConfig)
-		startHttp(&config)
+		config := conf.(*h2proxy.ClientConfig)
+		startHttp(config)
 	case "socks5":
-		config := conf.(h2proxy.ClientConfig)
-		startSocks5(&config)
+		config := conf.(*h2proxy.ClientConfig)
+		startSocks5(config)
 	case "server":
-		config := conf.(h2proxy.ServerConfig)
-		StartServer(&config)
+		config := conf.(*h2proxy.ServerConfig)
+		StartServer(config)
 	}
 }
