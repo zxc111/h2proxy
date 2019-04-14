@@ -1,6 +1,7 @@
 package h2proxy
 
 import (
+	"bytes"
 	"crypto/tls"
 	"flag"
 	"fmt"
@@ -8,6 +9,12 @@ import (
 	"log"
 	"net"
 	"os"
+)
+
+const (
+	HTTP    = "http"
+	SERVER  = "server"
+	SOCKSV5 = "socks5"
 )
 
 type ServerConfig struct {
@@ -74,8 +81,16 @@ func ParseConfig() (category string, config interface{}) {
 
 	flag.Parse()
 
+	serverRequired := map[string]string{
+		"host":     host,
+		"port":     port,
+		"cert_key": caKey,
+		"cert_crt": caCrt,
+	}
+	var errorLog bytes.Buffer
+
 	switch category {
-	case "http", "socks5":
+	case HTTP, SOCKSV5:
 		if proxyHost == "" {
 			flag.Usage()
 			log.Println("proxy_host is required")
@@ -108,29 +123,16 @@ func ParseConfig() (category string, config interface{}) {
 		log.Printf("local: %s", newClientConfig.Local)
 		log.Printf("proxy: %s", newClientConfig.Proxy)
 		return category, newClientConfig
-	case "server":
-		if host == "" {
-			log.Println("host is required")
-			flag.Usage()
-
-			os.Exit(1)
+	case SERVER:
+		for k, v := range serverRequired {
+			if v == "" {
+				errorLog.WriteString(k)
+				errorLog.WriteString(" is required\n")
+			}
 		}
-		if port == "" {
-			log.Println("port is required")
+		if errorLog.Len() != 0 {
+			log.Print(errorLog.String())
 			flag.Usage()
-
-			os.Exit(1)
-		}
-		if caKey == "" {
-			log.Println("cert_key is required")
-			flag.Usage()
-
-			os.Exit(1)
-		}
-		if caCrt == "" {
-			log.Println("cert_crt is required")
-			flag.Usage()
-
 			os.Exit(1)
 		}
 		newServerConfig := &ServerConfig{
