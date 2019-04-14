@@ -18,18 +18,20 @@ const (
 )
 
 type ServerConfig struct {
-	Server   string
-	CaKey    string
-	CaCrt    string
-	NeedAuth bool
-	User     *UserInfo
+	Server    string
+	CaKey     string
+	CaCrt     string
+	NeedAuth  bool
+	User      *UserInfo
+	DebugPort int
 }
 
 type ClientConfig struct {
-	Local    string
-	Proxy    string
-	needAuth bool
-	user     *UserInfo
+	Local     string
+	Proxy     string
+	needAuth  bool
+	user      *UserInfo
+	DebugPort int
 }
 
 func NewTransport(proxyAddr string) *http2.Transport {
@@ -60,6 +62,8 @@ func ParseConfig() (category string, config interface{}) {
 		localPort string
 		proxyHost string
 		proxyPort string
+
+		DebugPort int
 	)
 
 	// server
@@ -78,6 +82,7 @@ func ParseConfig() (category string, config interface{}) {
 	flag.BoolVar(&needAuth, "need_auth", false, "-need_auth=false")
 	flag.StringVar(&(user.username), "user", "", "-user=abc")
 	flag.StringVar(&(user.passwd), "passwd", "", "-passwd=def")
+	flag.IntVar(&DebugPort, "debugPort", 9999, "-debug_port=9999")
 
 	flag.Parse()
 
@@ -87,38 +92,29 @@ func ParseConfig() (category string, config interface{}) {
 		"cert_key": caKey,
 		"cert_crt": caCrt,
 	}
+	clientRequired := map[string]string{
+		"proxy_host":     proxyHost,
+		"proxy_port":     proxyPort,
+		"local_host": localHost,
+		"local_port": localPort,
+	}
 	var errorLog bytes.Buffer
 
 	switch category {
 	case HTTP, SOCKSV5:
-		if proxyHost == "" {
-			flag.Usage()
-			log.Println("proxy_host is required")
-			os.Exit(1)
-		}
-		if proxyPort == "" {
-			log.Println("proxy_port is required")
-			flag.Usage()
-
-			os.Exit(1)
-		}
-		if localHost == "" {
-			log.Println("local_host is required")
-			flag.Usage()
-
-			os.Exit(1)
-		}
-		if localPort == "" {
-			log.Println("local_port is required")
-			flag.Usage()
-
-			os.Exit(1)
+		for k, v := range clientRequired {
+			if v == "" {
+				errorLog.WriteString(k)
+				errorLog.WriteString(" is required\n")
+			}
 		}
 		newClientConfig := &ClientConfig{
 			Proxy:    fmt.Sprintf("%s:%s", proxyHost, proxyPort),
 			Local:    fmt.Sprintf("%s:%s", localHost, localPort),
 			needAuth: needAuth,
 			user:     user,
+			DebugPort: DebugPort,
+
 		}
 		log.Printf("local: %s", newClientConfig.Local)
 		log.Printf("proxy: %s", newClientConfig.Proxy)
@@ -140,6 +136,7 @@ func ParseConfig() (category string, config interface{}) {
 			CaCrt:  caCrt,
 			CaKey:  caKey,
 			User:   user,
+			DebugPort: DebugPort,
 		}
 		return category, newServerConfig
 

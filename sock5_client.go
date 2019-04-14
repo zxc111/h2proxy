@@ -1,8 +1,7 @@
-package main
+package h2proxy
 
 import (
 	"fmt"
-	"github.com/zxc111/h2proxy"
 	"io"
 	"log"
 	"net"
@@ -19,8 +18,8 @@ type targetInfo struct {
 	port string
 }
 
-func init() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
+type Sock5Proxy struct {
+	Config *ClientConfig
 }
 
 func auth(conn net.Conn) error {
@@ -158,7 +157,7 @@ func buildDestConn(conn net.Conn) (*targetInfo, error) {
 	return &target, nil
 }
 
-func handleConnection(conn net.Conn, config *h2proxy.ClientConfig) {
+func handleConnection(conn net.Conn, config *ClientConfig) {
 	defer conn.Close()
 	err := auth(conn)
 	if err != nil {
@@ -175,7 +174,7 @@ func handleConnection(conn net.Conn, config *h2proxy.ClientConfig) {
 
 func ToHttpProxy(from net.Conn, proxy, remoteAddr string) {
 
-	tr := h2proxy.NewTransport(proxy)
+	tr := NewTransport(proxy)
 
 	r, w := io.Pipe()
 
@@ -208,7 +207,8 @@ func ToHttpProxy(from net.Conn, proxy, remoteAddr string) {
 	io.Copy(from, resp.Body)
 }
 
-func startSocks5(config *h2proxy.ClientConfig) {
+func (s Sock5Proxy) Start() {
+	config := s.Config
 	ln, err := net.Listen("tcp", config.Local)
 	if err != nil {
 		log.Fatal(err)

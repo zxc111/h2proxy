@@ -1,9 +1,8 @@
-package main
+package h2proxy
 
 import (
 	"bytes"
 	"fmt"
-	"github.com/zxc111/h2proxy"
 	"io"
 	"log"
 	"net"
@@ -12,11 +11,16 @@ import (
 	"strings"
 )
 
-func StartServer(config *h2proxy.ServerConfig) {
+type Http2Server struct {
+	Config *ServerConfig
+}
+
+func (h Http2Server) Start() {
+	config := h.Config
 	server := &http.Server{
 		Addr: config.Server,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if config.NeedAuth && !h2proxy.CheckAuth(config.User, r) {
+			if config.NeedAuth && !CheckAuth(config.User, r) {
 				// TODO check auth
 				fmt.Fprint(w, "ok")
 				return
