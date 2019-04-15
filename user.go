@@ -8,10 +8,10 @@ import (
 
 type UserInfo struct {
 	username string
-	passwd string
+	passwd   string
 }
 
-func (u *UserInfo)String() string {
+func (u *UserInfo) String() string {
 	return fmt.Sprintf("username: %s, passwd: %s", u.username, u.passwd)
 }
 

@@ -6,9 +6,9 @@ import (
 )
 
 func TestAuth(t *testing.T) {
-	testCase := []struct{
-		u UserInfo
-		r http.Request
+	testCase := []struct {
+		u      UserInfo
+		r      http.Request
 		result bool
 	}{
 
@@ -56,10 +56,9 @@ func TestAuth(t *testing.T) {
 			http.Request{Header: http.Header{"Authorization": []string{"YTpi"}}},
 			true,
 		},
-
 	}
 	for _, Case := range testCase {
-		if Case.result != CheckAuth(&Case.u, &Case.r){
+		if Case.result != CheckAuth(&Case.u, &Case.r) {
 			t.Fatal(Case)
 		}
 	}

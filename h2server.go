@@ -74,6 +74,7 @@ func connectMethod(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 
 	to := flushWriter{w}
+	defer r.Body.Close()
 
 	go io.Copy(conn, r.Body)
 

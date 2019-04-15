@@ -4,8 +4,7 @@ import (
 	"net/http"
 )
 
-
-
+// 检查请求中的 auth信息 和 用户信息是否一致
 func CheckAuth(u *UserInfo, r *http.Request) bool {
 	rightAuth := u.ToBase64()
 	for _, auth := range getAuthFromHeader(r) {
@@ -32,6 +31,7 @@ func getAuthFromHeader(r *http.Request) []string {
 	return result
 }
 
+// 在 hesder 中设置 auth
 func SetAuthInHeader(u *UserInfo, req *http.Request) {
 	req.Header.Set("Proxy-Authenticate", u.ToBase64())
 }
