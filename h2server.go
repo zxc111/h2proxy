@@ -2,7 +2,6 @@ package h2proxy
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -18,20 +17,8 @@ type Http2Server struct {
 func (h Http2Server) Start() {
 	config := h.Config
 	server := &http.Server{
-		Addr: config.Server,
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if config.NeedAuth && !CheckAuth(config.User, r) {
-				// TODO check auth
-				fmt.Fprint(w, "ok")
-				return
-			}
-			switch r.Method {
-			case http.MethodConnect:
-				connectMethod(w, r)
-			default:
-				get(w, r)
-			}
-		}),
+		Addr:    config.Server,
+		Handler: http.HandlerFunc(handle(config)),
 	}
 
 	// require cert.
@@ -39,6 +26,22 @@ func (h Http2Server) Start() {
 	// openssl req -new -x509 -days 365 -key test1.key -out test1.crt
 	if err := server.ListenAndServeTLS(config.CaCrt, config.CaKey); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func handle(config *ServerConfig) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if config.NeedAuth && !CheckAuth(config.User, r) {
+			// TODO check auth
+			w.WriteHeader(400)
+			return
+		}
+		switch r.Method {
+		case http.MethodConnect:
+			connectMethod(w, r)
+		default:
+			get(w, r)
+		}
 	}
 }
 

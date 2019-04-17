@@ -14,12 +14,16 @@ import (
 
 func TestServer(t *testing.T) {
 	addr := "localhost:3010"
-
+	user := &UserInfo{
+		username: "aaa",
+		passwd:   "bbb",
+	}
 	go func() {
 		ca, err := tls.X509KeyPair([]byte(crt), []byte(key))
 		if err != nil {
 			t.Fatal(err)
 		}
+
 
 		server := &http.Server{
 			Addr: addr,
@@ -28,39 +32,20 @@ func TestServer(t *testing.T) {
 				InsecureSkipVerify: true,
 				NextProtos:         []string{"h2", "h2c", "h2i"},
 			},
-			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				//if needAuth && !h2proxy.CheckAuth(user, r) {
-				//	// TODO check auth
-				//	fmt.Fprint(w, "ok")
-				//	return
-				//}
-				switch r.Method {
-				case http.MethodConnect:
-					connectMethod(w, r)
-				default:
-					get(w, r)
-				}
-			}),
+			Handler: http.HandlerFunc(handle(&ServerConfig{
+				NeedAuth: true,
+				User: user,
+			})),
 		}
-		//http2.ConfigureServer(server, &http2.Server{
-		//	NewWriteScheduler: func() http2.WriteScheduler {
-		//		return http2.NewPriorityWriteScheduler(nil)
-		//	},
-		//})
 
 		// require cert.
 		// generate cert for test:
 		// openssl req -new -x509 -days 365 -key test1.key -out test1.crt
-		fmt.Println(123)
-		//if err := server.ListenAndServe(); err != nil {
-		//	fmt.Println(err)
-		//}
 		log.Fatal(server.ListenAndServeTLS("", ""))
-		fmt.Println(321)
 	}()
-	go func() {
-		net.Listen("tcp", "localhost:3006")
-	}()
+	//go func() {
+	//	net.Listen("tcp", "localhost:3006")
+	//}()
 
 	tr := NewTransport(addr)
 
@@ -74,6 +59,7 @@ func TestServer(t *testing.T) {
 	)
 	req.Header.Set("User-Agent", "curl/7.54.0")
 	req.Header.Set("Accept", "*/*")
+	SetAuthInHeader(user, req)
 
 	//req.Header = from.Header
 	if err != nil {

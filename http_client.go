@@ -43,7 +43,6 @@ func handler(w http.ResponseWriter, r *http.Request, config *ClientConfig) {
 	}
 }
 
-
 // not connectMethod method (http not https,don't need tunnel)
 func GetMethod(from *http.Request, remote string, to net.Conn, config *ClientConfig) {
 

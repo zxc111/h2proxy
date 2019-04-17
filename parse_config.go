@@ -12,6 +12,12 @@ const (
 	HTTP    = "http"
 	SERVER  = "server"
 	SOCKSV5 = "socks5"
+
+	LOCAL_HOST = "local_host"
+	LOCAL_PORT = "local_port"
+
+	PROXY_HOST = "proxy_host"
+	PROXY_PORT = "proxy_port"
 )
 
 type ServerConfig struct {
@@ -59,10 +65,10 @@ func ParseConfig() (category string, config interface{}) {
 	flag.StringVar(&caCrt, "cert_crt", "", "-cert_crt=/root/test.crt")
 
 	// client
-	flag.StringVar(&localHost, "local_host", "localhost", "-local_host=127.0.0.1")
-	flag.StringVar(&localPort, "local_port", "3002", "-local_port=4000")
-	flag.StringVar(&proxyHost, "proxy_host", "", "-porxy_host=xxx.xxx.xxx.xxx")
-	flag.StringVar(&proxyPort, "proxy_port", "", "-proxy_port=3000")
+	flag.StringVar(&localHost, LOCAL_HOST, "localhost", "-local_host=127.0.0.1")
+	flag.StringVar(&localPort, LOCAL_PORT, "3002", "-local_port=4000")
+	flag.StringVar(&proxyHost, PROXY_HOST, "", "-porxy_host=xxx.xxx.xxx.xxx")
+	flag.StringVar(&proxyPort, PROXY_PORT, "", "-proxy_port=3000")
 
 	// common
 	flag.BoolVar(&needAuth, "need_auth", false, "-need_auth=false")
@@ -79,10 +85,10 @@ func ParseConfig() (category string, config interface{}) {
 		"cert_crt": caCrt,
 	}
 	clientRequired := map[string]string{
-		"proxy_host": proxyHost,
-		"proxy_port": proxyPort,
-		"local_host": localHost,
-		"local_port": localPort,
+		PROXY_HOST: proxyHost,
+		PROXY_PORT: proxyPort,
+		LOCAL_HOST: localHost,
+		LOCAL_PORT: localPort,
 	}
 	var errorLog bytes.Buffer
 
