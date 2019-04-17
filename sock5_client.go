@@ -2,15 +2,12 @@ package h2proxy
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net"
-	"net/http"
 	"strconv"
 
 	//"os"
 	"errors"
-	"os"
 )
 
 type targetInfo struct {
@@ -169,43 +166,44 @@ func handleConnection(conn net.Conn, config *ClientConfig) {
 	}
 
 	remoteAddr := "http://" + dest.host + ":" + dest.port
-	ToHttpProxy(conn, config.Proxy, remoteAddr)
+	//ToHttpProxy(conn, config.Proxy, remoteAddr)
+	CreateTunnel(conn, remoteAddr, config)
 }
 
-func ToHttpProxy(from net.Conn, proxy, remoteAddr string) {
-
-	tr := NewTransport(proxy)
-
-	r, w := io.Pipe()
-
-	//remoteAddr := "http://216.58.200.14:443"
-	log.Println(remoteAddr)
-	req, err := http.NewRequest(
-		http.MethodConnect,
-		remoteAddr,
-		r,
-	)
-
-	if err != nil {
-		log.Println(err)
-	}
-	resp, err := tr.RoundTrip(req)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		log.Println(resp.StatusCode)
-		io.Copy(os.Stdout, resp.Body)
-		log.Println("Connect Proxy Server Error")
-		return
-	}
-
-	go io.Copy(w, from)
-	io.Copy(from, resp.Body)
-}
+//func ToHttpProxy(from net.Conn, proxy, remoteAddr string) {
+//
+//	tr := NewTransport(proxy)
+//
+//	r, w := io.Pipe()
+//
+//	//remoteAddr := "http://216.58.200.14:443"
+//	log.Println(remoteAddr)
+//	req, err := http.NewRequest(
+//		http.MethodConnect,
+//		remoteAddr,
+//		r,
+//	)
+//
+//	if err != nil {
+//		log.Println(err)
+//	}
+//	resp, err := tr.RoundTrip(req)
+//	if err != nil {
+//		log.Println(err)
+//		return
+//	}
+//	defer resp.Body.Close()
+//
+//	if resp.StatusCode != 200 {
+//		log.Println(resp.StatusCode)
+//		io.Copy(os.Stdout, resp.Body)
+//		log.Println("Connect Proxy Server Error")
+//		return
+//	}
+//
+//	go io.Copy(w, from)
+//	io.Copy(from, resp.Body)
+//}
 
 func (s Sock5Proxy) Start() {
 	config := s.Config

@@ -27,7 +27,7 @@ func handler(w http.ResponseWriter, r *http.Request, config *ClientConfig) {
 		defer clientConn.Close()
 
 		remote := "http://" + r.URL.Host
-		ConnectMethod(clientConn, remote, config)
+		CreateTunnel(clientConn, remote, config)
 	default:
 		remote := r.URL.Scheme + "://" + r.URL.Host
 
@@ -43,43 +43,6 @@ func handler(w http.ResponseWriter, r *http.Request, config *ClientConfig) {
 	}
 }
 
-// connectMethod method (for https, create tunnel)
-func ConnectMethod(from net.Conn, remoteAddr string, config *ClientConfig) {
-
-	tr := NewTransport(config.Proxy)
-
-	r, w := io.Pipe()
-
-	log.Println(remoteAddr)
-	req, err := http.NewRequest(
-		http.MethodConnect,
-		remoteAddr,
-		r,
-	)
-
-	if err != nil {
-		log.Println(err)
-	}
-
-	resp, err := tr.RoundTrip(req)
-
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		log.Println(resp.StatusCode)
-		io.Copy(os.Stdout, resp.Body)
-		log.Println("Connect Proxy Server Error")
-		return
-	}
-	fmt.Fprint(from, "HTTP/1.1 200 Connection Established\r\n\r\n")
-
-	go io.Copy(w, from)
-	io.Copy(from, resp.Body)
-}
 
 // not connectMethod method (http not https,don't need tunnel)
 func GetMethod(from *http.Request, remote string, to net.Conn, config *ClientConfig) {

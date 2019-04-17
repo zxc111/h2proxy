@@ -2,12 +2,9 @@ package h2proxy
 
 import (
 	"bytes"
-	"crypto/tls"
 	"flag"
 	"fmt"
-	"golang.org/x/net/http2"
 	"log"
-	"net"
 	"os"
 )
 
@@ -32,18 +29,7 @@ type ClientConfig struct {
 	needAuth  bool
 	user      *UserInfo
 	DebugPort int
-}
-
-func NewTransport(proxyAddr string) *http2.Transport {
-	return &http2.Transport{
-		DialTLS: func(network, addr string, config *tls.Config) (net.Conn, error) {
-			return tls.Dial("tcp", proxyAddr, &tls.Config{
-				NextProtos:         []string{"h2"},
-				InsecureSkipVerify: true,
-			})
-		},
-		AllowHTTP: true,
-	}
+	Category  string
 }
 
 func ParseConfig() (category string, config interface{}) {
@@ -93,8 +79,8 @@ func ParseConfig() (category string, config interface{}) {
 		"cert_crt": caCrt,
 	}
 	clientRequired := map[string]string{
-		"proxy_host":     proxyHost,
-		"proxy_port":     proxyPort,
+		"proxy_host": proxyHost,
+		"proxy_port": proxyPort,
 		"local_host": localHost,
 		"local_port": localPort,
 	}
@@ -109,12 +95,12 @@ func ParseConfig() (category string, config interface{}) {
 			}
 		}
 		newClientConfig := &ClientConfig{
-			Proxy:    fmt.Sprintf("%s:%s", proxyHost, proxyPort),
-			Local:    fmt.Sprintf("%s:%s", localHost, localPort),
-			needAuth: needAuth,
-			user:     user,
+			Proxy:     fmt.Sprintf("%s:%s", proxyHost, proxyPort),
+			Local:     fmt.Sprintf("%s:%s", localHost, localPort),
+			needAuth:  needAuth,
+			user:      user,
 			DebugPort: DebugPort,
-
+			Category:  category,
 		}
 		log.Printf("local: %s", newClientConfig.Local)
 		log.Printf("proxy: %s", newClientConfig.Proxy)
@@ -132,10 +118,10 @@ func ParseConfig() (category string, config interface{}) {
 			os.Exit(1)
 		}
 		newServerConfig := &ServerConfig{
-			Server: fmt.Sprintf("%s:%s", host, port),
-			CaCrt:  caCrt,
-			CaKey:  caKey,
-			User:   user,
+			Server:    fmt.Sprintf("%s:%s", host, port),
+			CaCrt:     caCrt,
+			CaKey:     caKey,
+			User:      user,
 			DebugPort: DebugPort,
 		}
 		return category, newServerConfig
