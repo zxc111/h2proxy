@@ -36,6 +36,7 @@ func main() {
 		debugPort = config.DebugPort
 	}
 	go startPProf(debugPort)
+
 	server.Start()
 }
 

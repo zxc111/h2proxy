@@ -2,11 +2,9 @@ package h2proxy
 
 import (
 	"crypto/tls"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"testing"
@@ -24,7 +22,6 @@ func TestServer(t *testing.T) {
 			t.Fatal(err)
 		}
 
-
 		server := &http.Server{
 			Addr: addr,
 			TLSConfig: &tls.Config{
@@ -34,7 +31,7 @@ func TestServer(t *testing.T) {
 			},
 			Handler: http.HandlerFunc(handle(&ServerConfig{
 				NeedAuth: true,
-				User: user,
+				User:     user,
 			})),
 		}
 
@@ -43,9 +40,6 @@ func TestServer(t *testing.T) {
 		// openssl req -new -x509 -days 365 -key test1.key -out test1.crt
 		log.Fatal(server.ListenAndServeTLS("", ""))
 	}()
-	//go func() {
-	//	net.Listen("tcp", "localhost:3006")
-	//}()
 
 	tr := NewTransport(addr)
 
@@ -71,7 +65,7 @@ func TestServer(t *testing.T) {
 		log.Println(err)
 		return
 	}
-	defer resp.Body.Close()
+	defer closeConn(resp.Body)
 
 	if resp.StatusCode != 200 {
 		log.Println(resp.StatusCode)
@@ -137,12 +131,11 @@ UlmSMAR8lmZoc4voVh2/EnaQiBd7+46kEGLEqz/qB06HbNrs9mqMYxO6UbdE0qbH
 sgGLrMCt
 -----END CERTIFICATE-----`
 
-func TestConn(t *testing.T) {
-	conn, _ := net.Dial("tcp", "www.baidu.com:80")
-	a := `GET http://baidu.com/ HTTP/1.1\r\nHost: baidu.com\r\nUser-Agent: curl/7.54.0\r\nAccept: */*\r\n\r\n`
-	fmt.Printf(a)
-	conn.Write([]byte(a))
-	res, _ := ioutil.ReadAll(conn)
-	fmt.Println(string(res))
-
-}
+//func TestConn(t *testing.T) {
+//	conn, _ := net.Dial("tcp", "www.baidu.com:80")
+//	a := `GET http://baidu.com/ HTTP/1.1\r\nHost: baidu.com\r\nUser-Agent: curl/7.54.0\r\nAccept: */*\r\n\r\n`
+//	fmt.Printf(a)
+//	conn.Write([]byte(a))
+//	res, _ := ioutil.ReadAll(conn)
+//	fmt.Println(string(res))
+//}

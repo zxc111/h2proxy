@@ -24,7 +24,7 @@ func handler(w http.ResponseWriter, r *http.Request, config *ClientConfig) {
 			http.Error(w, err.Error(), http.StatusServiceUnavailable)
 			return
 		}
-		defer clientConn.Close()
+		defer closeConn(clientConn)
 
 		remote := "http://" + r.URL.Host
 		CreateTunnel(clientConn, remote, config)
@@ -37,7 +37,7 @@ func handler(w http.ResponseWriter, r *http.Request, config *ClientConfig) {
 			http.Error(w, err.Error(), http.StatusServiceUnavailable)
 			return
 		}
-		defer clientConn.Close()
+		defer closeConn(clientConn)
 
 		GetMethod(r, remote, clientConn, config)
 	}
@@ -62,19 +62,18 @@ func GetMethod(from *http.Request, remote string, to net.Conn, config *ClientCon
 	)
 
 	req.Header = from.Header
-	if err != nil {
-		log.Println(err)
-	}
+
 	resp, err := tr.RoundTrip(req)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	defer resp.Body.Close()
+	defer closeConn(resp.Body)
 
 	if resp.StatusCode != 200 {
 		log.Println(resp.StatusCode)
 		io.Copy(os.Stdout, resp.Body)
+		fmt.Fprint(to, resp.StatusCode)
 		log.Println("Connect Proxy Server Error")
 		return
 	}
@@ -100,5 +99,5 @@ func (h HttpProxy) Start() {
 			}
 		}),
 	}
-	server.ListenAndServe()
+	log.Fatal(server.ListenAndServe())
 }

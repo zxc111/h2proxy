@@ -35,7 +35,7 @@ func CreateTunnel(from net.Conn, remoteAddr string, config *ClientConfig) {
 		return
 	}
 
-	defer resp.Body.Close()
+	defer closeConn(resp.Body)
 
 	if resp.StatusCode != 200 {
 		log.Println(resp.StatusCode)

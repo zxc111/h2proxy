@@ -24,9 +24,7 @@ func (h Http2Server) Start() {
 	// require cert.
 	// generate cert for test:
 	// openssl req -new -x509 -days 365 -key test1.key -out test1.crt
-	if err := server.ListenAndServeTLS(config.CaCrt, config.CaKey); err != nil {
-		log.Fatal(err)
-	}
+	log.Fatal(server.ListenAndServeTLS(config.CaCrt, config.CaKey))
 }
 
 func handle(config *ServerConfig) func(w http.ResponseWriter, r *http.Request) {
@@ -74,10 +72,10 @@ func connectMethod(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	defer conn.Close()
+	defer closeConn(conn)
 
 	to := flushWriter{w}
-	defer r.Body.Close()
+	defer closeConn(r.Body)
 
 	go io.Copy(conn, r.Body)
 

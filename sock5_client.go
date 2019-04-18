@@ -155,7 +155,7 @@ func buildDestConn(conn net.Conn) (*targetInfo, error) {
 }
 
 func handleConnection(conn net.Conn, config *ClientConfig) {
-	defer conn.Close()
+	defer closeConn(conn)
 	err := auth(conn)
 	if err != nil {
 		return
