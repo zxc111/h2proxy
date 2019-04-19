@@ -74,7 +74,7 @@ func ParseConfig() (category string, config interface{}) {
 	flag.BoolVar(&needAuth, "need_auth", false, "-need_auth=false")
 	flag.StringVar(&(user.username), "user", "", "-user=abc")
 	flag.StringVar(&(user.passwd), "passwd", "", "-passwd=def")
-	flag.IntVar(&DebugPort, "debugPort", 9999, "-debug_port=9999")
+	flag.IntVar(&DebugPort, "pprof_port", 9999, "-pprof_port=9999")
 
 	flag.Parse()
 

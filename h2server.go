@@ -1,12 +1,10 @@
 package h2proxy
 
 import (
-	"bytes"
 	"io"
 	"log"
 	"net"
 	"net/http"
-	"net/http/httputil"
 	"strings"
 )
 
@@ -104,6 +102,11 @@ func get(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	res, _ := httputil.DumpResponse(resp, true)
-	io.Copy(to, bytes.NewBuffer(res))
+	for k, v := range resp.Header {
+		if len(v) == 0 {
+			continue
+		}
+		w.Header().Set(k, v[0])
+	}
+	io.Copy(to, resp.Body)
 }
