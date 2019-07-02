@@ -2,6 +2,8 @@ package h2proxy
 
 import (
 	"crypto/tls"
+	"fmt"
+	"go.uber.org/zap"
 	"io"
 	"io/ioutil"
 	"log"
@@ -10,55 +12,63 @@ import (
 	"testing"
 )
 
-func TestServer(t *testing.T) {
-	addr := "localhost:3010"
-	user := &UserInfo{
+var (
+	addr = "localhost:3010"
+	user = &UserInfo{
 		username: "aaa",
 		passwd:   "bbb",
 	}
-	go func() {
-		ca, err := tls.X509KeyPair([]byte(crt), []byte(key))
-		if err != nil {
-			t.Fatal(err)
-		}
+)
 
-		server := &http.Server{
-			Addr: addr,
-			TLSConfig: &tls.Config{
-				Certificates:       []tls.Certificate{ca},
-				InsecureSkipVerify: true,
-				NextProtos:         []string{"h2", "h2c", "h2i"},
-			},
-			Handler: http.HandlerFunc(handle(&ServerConfig{
-				NeedAuth: true,
-				User:     user,
-			})),
-		}
+func testServerStart(t *testing.T) {
+	ca, err := tls.X509KeyPair([]byte(crt), []byte(key))
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		// require cert.
-		// generate cert for test:
-		// openssl req -new -x509 -days 365 -key test1.key -out test1.crt
-		log.Fatal(server.ListenAndServeTLS("", ""))
-	}()
+	server := &http.Server{
+		Addr: addr,
+		TLSConfig: &tls.Config{
+			Certificates:       []tls.Certificate{ca},
+			InsecureSkipVerify: true,
+			NextProtos:         []string{"h2", "h2c", "h2i"},
+		},
+		Handler: http.HandlerFunc(handle(&ServerConfig{
+			NeedAuth: true,
+			User:     user,
+		})),
+	}
+
+	// require cert.
+	// generate cert for test:
+	// openssl req -new -x509 -days 365 -key test1.key -out test1.crt
+	log.Fatal(server.ListenAndServeTLS("", ""))
+}
+
+func TestServer(t *testing.T) {
+
+	go testServerStart(t)
 
 	tr := NewTransport(addr)
 
+	fmt.Println(Log)
 	remoteAddr := "http://www.baidu.com/s?ie=utf-8&f=8&rsv_bp=1&rsv_idx=1&tn=baidu&wd=test&rsv_pq=b490c49a0000626b&rsv_t=132ffj2JcJlsvnHjGuDY6aR7woxPXQeCGImDWkR73XJBOuQrytnW9Racfew&rqlang=cn&rsv_enter=1&rsv_sug3=4&rsv_sug1=4&rsv_sug7=100&rsv_sug2=0&inputT=764&rsv_sug4=764"
-	log.Println(remoteAddr)
+	Log.Info(remoteAddr)
 
 	req, err := http.NewRequest(
 		http.MethodGet,
 		remoteAddr,
 		nil,
 	)
+
+	//req.Header = from.Header
+	if err != nil {
+		Log.Error("", zap.Error(err))
+	}
 	req.Header.Set("User-Agent", "curl/7.54.0")
 	req.Header.Set("Accept", "*/*")
 	SetAuthInHeader(user, req)
 
-	//req.Header = from.Header
-	if err != nil {
-		log.Println(err)
-	}
 	tr.DisableCompression = true
 	resp, err := tr.RoundTrip(req)
 	if err != nil {
@@ -72,13 +82,12 @@ func TestServer(t *testing.T) {
 		io.Copy(os.Stdout, resp.Body)
 		log.Println("Connect Proxy Server Error")
 		t.Fatal(err)
-		return
 	}
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(string(b))
+	t.Log(string(b)[:100])
 }
 
 var key = `-----BEGIN PRIVATE KEY-----
@@ -130,12 +139,3 @@ TQl3GmL13n1MooSzyvHZOfOfVHufZe1JDZyApsfUxCE+DNpeDmZhP/k24rlL+xxy
 UlmSMAR8lmZoc4voVh2/EnaQiBd7+46kEGLEqz/qB06HbNrs9mqMYxO6UbdE0qbH
 sgGLrMCt
 -----END CERTIFICATE-----`
-
-//func TestConn(t *testing.T) {
-//	conn, _ := net.Dial("tcp", "www.baidu.com:80")
-//	a := `GET http://baidu.com/ HTTP/1.1\r\nHost: baidu.com\r\nUser-Agent: curl/7.54.0\r\nAccept: */*\r\n\r\n`
-//	fmt.Printf(a)
-//	conn.Write([]byte(a))
-//	res, _ := ioutil.ReadAll(conn)
-//	fmt.Println(string(res))
-//}

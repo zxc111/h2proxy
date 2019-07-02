@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type Http2Server struct {
@@ -26,6 +27,7 @@ func (h Http2Server) Start() {
 }
 
 func handle(config *ServerConfig) func(w http.ResponseWriter, r *http.Request) {
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		if config.NeedAuth && !CheckAuth(config.User, r) {
 			// TODO check auth
@@ -54,6 +56,8 @@ func (fw flushWriter) Write(p []byte) (n int, err error) {
 }
 
 func connectMethod(w http.ResponseWriter, r *http.Request) {
+	defer cost(time.Now().UnixNano(), r.URL.RequestURI())
+
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()
 	} else {
@@ -81,6 +85,8 @@ func connectMethod(w http.ResponseWriter, r *http.Request) {
 }
 
 func get(w http.ResponseWriter, r *http.Request) {
+	defer cost(time.Now().UnixNano(), r.URL.RequestURI())
+
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()
 	} else {

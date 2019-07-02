@@ -24,16 +24,16 @@ func main() {
 	case h2proxy.HTTP:
 		config := conf.(*h2proxy.ClientConfig)
 		server = h2proxy.HttpProxy{config}
-		debugPort = config.DebugPort
+		debugPort = config.Pprof
 	case h2proxy.SOCKSV5:
 		config := conf.(*h2proxy.ClientConfig)
 		server = h2proxy.Sock5Proxy{config}
-		debugPort = config.DebugPort
+		debugPort = config.Pprof
 
 	case h2proxy.SERVER:
 		config := conf.(*h2proxy.ServerConfig)
 		server = h2proxy.Http2Server{config}
-		debugPort = config.DebugPort
+		debugPort = config.Pprof
 	}
 	go startPProf(debugPort)
 

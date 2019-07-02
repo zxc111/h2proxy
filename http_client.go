@@ -60,6 +60,10 @@ func GetMethod(from *http.Request, remote string, to net.Conn, config *ClientCon
 		remoteAddr,
 		bytes.NewBuffer(dump),
 	)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
 	req.Header = from.Header
 

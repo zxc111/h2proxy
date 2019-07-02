@@ -102,6 +102,7 @@ func buildDestConn(conn net.Conn) (*targetInfo, error) {
 
 	target := targetInfo{}
 	if res[3] == 1 {
+		// ipv4
 		addr := fmt.Sprintf("%d.%d.%d.%d", res[4], res[5], res[6], res[7])
 		port := int(res[8])*256 + int(res[9])
 		target.port = strconv.Itoa(port)
@@ -110,6 +111,7 @@ func buildDestConn(conn net.Conn) (*targetInfo, error) {
 		resp := []byte{5, 0, 0, res[3], res[4], res[5], res[6], res[7], res[8], res[9]}
 		conn.Write(resp)
 	} else if res[3] == 3 {
+		// domain`
 		length := int(res[4])
 		addr := res[5 : 5+length]
 		target.host = string(addr)
@@ -117,6 +119,9 @@ func buildDestConn(conn net.Conn) (*targetInfo, error) {
 		target.port = strconv.Itoa(port)
 		resp := []byte{5, 0, 0, res[3], res[4]}
 		resp = append(resp, res[5:n]...)
+		log.Println(string(resp))
+		log.Println((resp))
+
 		conn.Write(resp)
 	} else if res[3] == 4 {
 		resp := []byte{5, 8, 0}
