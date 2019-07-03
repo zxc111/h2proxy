@@ -8,10 +8,9 @@ import (
 )
 
 var (
-	Log  = logger()
+	Log  *zap.SugaredLogger
 	once = new(sync.Once)
 )
-
 
 func closeConn(conn io.Closer) {
 	err := conn.Close()
@@ -20,14 +19,24 @@ func closeConn(conn io.Closer) {
 	}
 }
 
-func logger() *zap.Logger {
+func logger() *zap.SugaredLogger {
 	var tmp *zap.Logger
-	once.Do(func(){
+	once.Do(func() {
 		var err error
-		tmp, err = zap.NewProduction()
+		if Debug {
+			tmp, err = zap.NewDevelopment()
+		} else {
+			tmp, err = zap.NewProduction()
+		}
 		if err != nil {
 			log.Fatalf("can't initialize zap logger: %v", err)
 		}
+
 	})
-	return tmp
+	sugar := tmp.Sugar()
+	return sugar
+}
+
+func InitLogger() {
+	Log = logger()
 }

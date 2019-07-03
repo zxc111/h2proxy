@@ -6,16 +6,16 @@ import (
 	"fmt"
 )
 
-type UserInfo struct {
+type userInfo struct {
 	username string
 	passwd   string
 }
 
-func (u *UserInfo) String() string {
+func (u *userInfo) String() string {
 	return fmt.Sprintf("username: %s, passwd: %s", u.username, u.passwd)
 }
 
-func (u *UserInfo) ToBase64() string {
+func (u *userInfo) ToBase64() string {
 	if u.username == "" && u.passwd == "" {
 		return ""
 	}

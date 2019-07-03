@@ -14,7 +14,7 @@ import (
 
 var (
 	addr = "localhost:3010"
-	user = &UserInfo{
+	user = &userInfo{
 		username: "aaa",
 		passwd:   "bbb",
 	}

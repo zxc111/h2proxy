@@ -9,14 +9,11 @@ import (
 	_ "net/http/pprof"
 )
 
-func init() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-}
-
 func main() {
 
 	category, conf := h2proxy.ParseConfig()
 
+	h2proxy.InitLogger()
 	var debugPort int
 
 	var server h2proxy.H2proxy
@@ -43,6 +40,6 @@ func main() {
 func startPProf(port int) {
 
 	addr := fmt.Sprintf("localhost:%d", port)
-	log.Printf("pprof is running at %s", addr)
+	h2proxy.Log.Info("pprof is running at "+addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }

@@ -28,7 +28,7 @@ type ServerConfig struct {
 	CaKey    string
 	CaCrt    string
 	NeedAuth bool
-	User     *UserInfo
+	User     *userInfo
 	Pprof    int
 }
 
@@ -36,7 +36,7 @@ type ClientConfig struct {
 	Local    string
 	Proxy    string
 	needAuth bool
-	user     *UserInfo
+	user     *userInfo
 	Pprof    int
 	Category string
 }
@@ -44,7 +44,7 @@ type ClientConfig struct {
 func ParseConfig() (category string, config interface{}) {
 	flag.StringVar(&category, "category", "client", "-category=http/server/socks5")
 
-	user := &UserInfo{}
+	user := &userInfo{}
 	var (
 		host  string
 		port  string
@@ -76,7 +76,6 @@ func ParseConfig() (category string, config interface{}) {
 	// common
 	flag.BoolVar(&needAuth, "need_auth", false, "-need_auth=false")
 	flag.BoolVar(&Debug, "debug", false, "-debug=false")
-
 	flag.StringVar(&(user.username), "user", "", "-user=abc")
 	flag.StringVar(&(user.passwd), "passwd", "", "-passwd=def")
 	flag.IntVar(&Pprof, "pprof", 9999, "-pprof=9999")
