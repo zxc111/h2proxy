@@ -137,7 +137,7 @@ func ParseConfig() (category string, config interface{}) {
 		return category, newServerConfig
 
 	default:
-		log.Println("category is required")
+		Log.Info("category is required")
 		flag.Usage()
 		os.Exit(1)
 	}

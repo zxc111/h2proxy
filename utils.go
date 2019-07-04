@@ -15,24 +15,25 @@ var (
 func closeConn(conn io.Closer) {
 	err := conn.Close()
 	if err != nil {
-		log.Print(err)
+		Log.Info(err)
 	}
 }
 
 func logger() *zap.SugaredLogger {
 	var tmp *zap.Logger
-	once.Do(func() {
-		var err error
-		if Debug {
-			tmp, err = zap.NewDevelopment()
-		} else {
-			tmp, err = zap.NewProduction()
-		}
-		if err != nil {
-			log.Fatalf("can't initialize zap logger: %v", err)
-		}
+	lock := new(sync.Mutex)
+	lock.Lock()
+	defer lock.Unlock()
+	var err error
+	if Debug {
+		tmp, err = zap.NewDevelopment()
+	} else {
+		tmp, err = zap.NewProduction()
+	}
+	if err != nil {
+		log.Fatalf("can't initialize zap logger: %v", err)
+	}
 
-	})
 	sugar := tmp.Sugar()
 	return sugar
 }

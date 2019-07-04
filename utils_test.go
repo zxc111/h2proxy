@@ -12,7 +12,7 @@ import (
 )
 
 func TestDebug(t *testing.T) {
-
+	//InitLogger()
 	Log = logger()
 	res := captureOutput(print, false)
 	if strings.Contains(res, "debug") {

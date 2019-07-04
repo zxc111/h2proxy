@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/zxc111/h2proxy"
-	"log"
 	"net/http"
 
 	_ "net/http/pprof"
@@ -41,5 +40,5 @@ func startPProf(port int) {
 
 	addr := fmt.Sprintf("localhost:%d", port)
 	h2proxy.Log.Info("pprof is running at "+addr)
-	log.Fatal(http.ListenAndServe(addr, nil))
+	h2proxy.Log.Fatal(http.ListenAndServe(addr, nil))
 }

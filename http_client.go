@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -48,12 +47,12 @@ func GetMethod(from *http.Request, remote string, to net.Conn, config *ClientCon
 
 	dump, err := httputil.DumpRequest(from, true)
 	if err != nil {
-		log.Println(err)
+		Log.Error(err)
 	}
 	tr := NewTransport(config.Proxy)
 
 	remoteAddr := remote
-	log.Println(remoteAddr)
+	Log.Info(remoteAddr)
 
 	req, err := http.NewRequest(
 		http.MethodGet,
@@ -61,7 +60,7 @@ func GetMethod(from *http.Request, remote string, to net.Conn, config *ClientCon
 		bytes.NewBuffer(dump),
 	)
 	if err != nil {
-		log.Println(err)
+		Log.Error(err)
 		return
 	}
 
@@ -69,16 +68,16 @@ func GetMethod(from *http.Request, remote string, to net.Conn, config *ClientCon
 
 	resp, err := tr.RoundTrip(req)
 	if err != nil {
-		log.Println(err)
+		Log.Error(err)
 		return
 	}
 	defer closeConn(resp.Body)
 
 	if resp.StatusCode != 200 {
-		log.Println(resp.StatusCode)
+		Log.Info(resp.StatusCode)
 		io.Copy(os.Stdout, resp.Body)
 		fmt.Fprint(to, resp.StatusCode)
-		log.Println("Connect Proxy Server Error")
+		Log.Info("Connect Proxy Server Error")
 		return
 	}
 	io.Copy(to, resp.Body)
@@ -87,8 +86,8 @@ func GetMethod(from *http.Request, remote string, to net.Conn, config *ClientCon
 
 func (h HttpProxy) Start() {
 	config := h.Config
-	log.Printf("local: %s", config.Local)
-	log.Printf("remote: %s", config.Proxy)
+	Log.Info("local: %s", config.Local)
+	Log.Info("remote: %s", config.Proxy)
 	server := &http.Server{
 		Addr: config.Local,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -103,5 +102,5 @@ func (h HttpProxy) Start() {
 			}
 		}),
 	}
-	log.Fatal(server.ListenAndServe())
+	Log.Fatal(server.ListenAndServe())
 }

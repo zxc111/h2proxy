@@ -6,7 +6,6 @@ import (
 	"go.uber.org/zap"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"testing"
@@ -21,6 +20,7 @@ var (
 )
 
 func testServerStart(t *testing.T) {
+	//InitLogger()
 	ca, err := tls.X509KeyPair([]byte(crt), []byte(key))
 	if err != nil {
 		t.Fatal(err)
@@ -42,11 +42,11 @@ func testServerStart(t *testing.T) {
 	// require cert.
 	// generate cert for test:
 	// openssl req -new -x509 -days 365 -key test1.key -out test1.crt
-	log.Fatal(server.ListenAndServeTLS("", ""))
+	Log.Fatal(server.ListenAndServeTLS("", ""))
 }
 
 func TestServer(t *testing.T) {
-
+	InitLogger()
 	go testServerStart(t)
 
 	tr := NewTransport(addr)
@@ -72,15 +72,15 @@ func TestServer(t *testing.T) {
 	tr.DisableCompression = true
 	resp, err := tr.RoundTrip(req)
 	if err != nil {
-		log.Println(err)
+		Log.Error(err)
 		return
 	}
 	defer closeConn(resp.Body)
 
 	if resp.StatusCode != 200 {
-		log.Println(resp.StatusCode)
+		Log.Info(resp.StatusCode)
 		io.Copy(os.Stdout, resp.Body)
-		log.Println("Connect Proxy Server Error")
+		Log.Info("Connect Proxy Server Error")
 		t.Fatal(err)
 	}
 	b, err := ioutil.ReadAll(resp.Body)

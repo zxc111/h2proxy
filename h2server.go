@@ -2,7 +2,6 @@ package h2proxy
 
 import (
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"strings"
@@ -23,7 +22,7 @@ func (h Http2Server) Start() {
 	// require cert.
 	// generate cert for test:
 	// openssl req -new -x509 -days 365 -key test1.key -out test1.crt
-	log.Fatal(server.ListenAndServeTLS(config.CaCrt, config.CaKey))
+	Log.Fatal(server.ListenAndServeTLS(config.CaCrt, config.CaKey))
 }
 
 func handle(config *ServerConfig) func(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +69,7 @@ func connectMethod(w http.ResponseWriter, r *http.Request) {
 	}
 	conn, err := net.Dial("tcp", remoteAddr)
 	if err != nil {
-		log.Println(err)
+		Log.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -106,7 +105,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := cli.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		Log.Fatal(err)
 	}
 	for k, v := range resp.Header {
 		if len(v) == 0 {
