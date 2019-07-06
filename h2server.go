@@ -1,13 +1,11 @@
 package h2proxy
 
 import (
-	"bytes"
 	"io"
-	"log"
 	"net"
 	"net/http"
-	"net/http/httputil"
 	"strings"
+	"time"
 )
 
 type Http2Server struct {
@@ -24,10 +22,11 @@ func (h Http2Server) Start() {
 	// require cert.
 	// generate cert for test:
 	// openssl req -new -x509 -days 365 -key test1.key -out test1.crt
-	log.Fatal(server.ListenAndServeTLS(config.CaCrt, config.CaKey))
+	Log.Fatal(server.ListenAndServeTLS(config.CaCrt, config.CaKey))
 }
 
 func handle(config *ServerConfig) func(w http.ResponseWriter, r *http.Request) {
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		if config.NeedAuth && !CheckAuth(config.User, r) {
 			// TODO check auth
@@ -56,6 +55,8 @@ func (fw flushWriter) Write(p []byte) (n int, err error) {
 }
 
 func connectMethod(w http.ResponseWriter, r *http.Request) {
+	defer cost(time.Now().UnixNano(), r.URL.RequestURI())
+
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()
 	} else {
@@ -68,7 +69,7 @@ func connectMethod(w http.ResponseWriter, r *http.Request) {
 	}
 	conn, err := net.Dial("tcp", remoteAddr)
 	if err != nil {
-		log.Println(err)
+		Log.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -83,6 +84,8 @@ func connectMethod(w http.ResponseWriter, r *http.Request) {
 }
 
 func get(w http.ResponseWriter, r *http.Request) {
+	defer cost(time.Now().UnixNano(), r.URL.RequestURI())
+
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()
 	} else {
@@ -102,8 +105,13 @@ func get(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := cli.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		Log.Fatal(err)
 	}
-	res, _ := httputil.DumpResponse(resp, true)
-	io.Copy(to, bytes.NewBuffer(res))
+	for k, v := range resp.Header {
+		if len(v) == 0 {
+			continue
+		}
+		w.Header().Set(k, v[0])
+	}
+	io.Copy(to, resp.Body)
 }

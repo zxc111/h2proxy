@@ -20,28 +20,31 @@ const (
 	PROXY_PORT = "proxy_port"
 )
 
+// global config
+var Debug = false
+
 type ServerConfig struct {
-	Server    string
-	CaKey     string
-	CaCrt     string
-	NeedAuth  bool
-	User      *UserInfo
-	DebugPort int
+	Server   string
+	CaKey    string
+	CaCrt    string
+	NeedAuth bool
+	User     *userInfo
+	Pprof    int
 }
 
 type ClientConfig struct {
-	Local     string
-	Proxy     string
-	needAuth  bool
-	user      *UserInfo
-	DebugPort int
-	Category  string
+	Local    string
+	Proxy    string
+	needAuth bool
+	user     *userInfo
+	Pprof    int
+	Category string
 }
 
 func ParseConfig() (category string, config interface{}) {
 	flag.StringVar(&category, "category", "client", "-category=http/server/socks5")
 
-	user := &UserInfo{}
+	user := &userInfo{}
 	var (
 		host  string
 		port  string
@@ -55,7 +58,7 @@ func ParseConfig() (category string, config interface{}) {
 		proxyHost string
 		proxyPort string
 
-		DebugPort int
+		Pprof int
 	)
 
 	// server
@@ -72,9 +75,10 @@ func ParseConfig() (category string, config interface{}) {
 
 	// common
 	flag.BoolVar(&needAuth, "need_auth", false, "-need_auth=false")
+	flag.BoolVar(&Debug, "debug", false, "-debug=false")
 	flag.StringVar(&(user.username), "user", "", "-user=abc")
 	flag.StringVar(&(user.passwd), "passwd", "", "-passwd=def")
-	flag.IntVar(&DebugPort, "debugPort", 9999, "-debug_port=9999")
+	flag.IntVar(&Pprof, "pprof", 9999, "-pprof=9999")
 
 	flag.Parse()
 
@@ -101,12 +105,12 @@ func ParseConfig() (category string, config interface{}) {
 			}
 		}
 		newClientConfig := &ClientConfig{
-			Proxy:     fmt.Sprintf("%s:%s", proxyHost, proxyPort),
-			Local:     fmt.Sprintf("%s:%s", localHost, localPort),
-			needAuth:  needAuth,
-			user:      user,
-			DebugPort: DebugPort,
-			Category:  category,
+			Proxy:    fmt.Sprintf("%s:%s", proxyHost, proxyPort),
+			Local:    fmt.Sprintf("%s:%s", localHost, localPort),
+			needAuth: needAuth,
+			user:     user,
+			Pprof:    Pprof,
+			Category: category,
 		}
 		log.Printf("local: %s", newClientConfig.Local)
 		log.Printf("proxy: %s", newClientConfig.Proxy)
@@ -124,16 +128,16 @@ func ParseConfig() (category string, config interface{}) {
 			os.Exit(1)
 		}
 		newServerConfig := &ServerConfig{
-			Server:    fmt.Sprintf("%s:%s", host, port),
-			CaCrt:     caCrt,
-			CaKey:     caKey,
-			User:      user,
-			DebugPort: DebugPort,
+			Server: fmt.Sprintf("%s:%s", host, port),
+			CaCrt:  caCrt,
+			CaKey:  caKey,
+			User:   user,
+			Pprof:  Pprof,
 		}
 		return category, newServerConfig
 
 	default:
-		log.Println("category is required")
+		Log.Info("category is required")
 		flag.Usage()
 		os.Exit(1)
 	}
