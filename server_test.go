@@ -42,7 +42,7 @@ func testServerStart(t *testing.T) {
 	// require cert.
 	// generate cert for test:
 	// openssl req -new -x509 -days 365 -key test1.key -out test1.crt
-	Log.Fatal(server.ListenAndServeTLS("", ""))
+	t.Fatal(server.ListenAndServeTLS("", ""))
 }
 
 func TestServer(t *testing.T) {
