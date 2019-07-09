@@ -6,4 +6,4 @@
 http2 proxy server &amp;&amp; client
 
 
-[Android CLient](https://github.com/zxc111/SmartProxy)
+[Android Client](https://github.com/zxc111/SmartProxy)
