@@ -7,7 +7,7 @@ import (
 
 func TestAuth(t *testing.T) {
 	testCase := []struct {
-		u      userInfo
+		u      UserInfo
 		r      http.Request
 		result bool
 	}{
@@ -16,7 +16,7 @@ func TestAuth(t *testing.T) {
 			result: true,
 		},
 		{
-			userInfo{
+			UserInfo{
 				"a",
 				"b",
 			},
@@ -25,7 +25,7 @@ func TestAuth(t *testing.T) {
 		},
 
 		{
-			userInfo{
+			UserInfo{
 				"a",
 				"b",
 			},
@@ -33,7 +33,7 @@ func TestAuth(t *testing.T) {
 			false,
 		},
 		{
-			userInfo{
+			UserInfo{
 				"a",
 				"b",
 			},
@@ -41,7 +41,7 @@ func TestAuth(t *testing.T) {
 			false,
 		},
 		{
-			userInfo{
+			UserInfo{
 				"a",
 				"b",
 			},
@@ -49,7 +49,7 @@ func TestAuth(t *testing.T) {
 			true,
 		},
 		{
-			userInfo{
+			UserInfo{
 				"a",
 				"b",
 			},

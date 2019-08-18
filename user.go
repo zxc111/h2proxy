@@ -6,22 +6,22 @@ import (
 	"fmt"
 )
 
-type userInfo struct {
-	username string
-	passwd   string
+type UserInfo struct {
+	Username string
+	Passwd   string
 }
 
-func (u *userInfo) String() string {
-	return fmt.Sprintf("username: %s, passwd: %s", u.username, u.passwd)
+func (u *UserInfo) String() string {
+	return fmt.Sprintf("Username: %s, Passwd: %s", u.Username, u.Passwd)
 }
 
-func (u *userInfo) ToBase64() string {
-	if u.username == "" && u.passwd == "" {
+func (u *UserInfo) ToBase64() string {
+	if u.Username == "" && u.Passwd == "" {
 		return ""
 	}
-	b := bytes.NewBuffer([]byte(u.username))
+	b := bytes.NewBuffer([]byte(u.Username))
 	b.WriteByte(':')
-	b.WriteString(u.passwd)
+	b.WriteString(u.Passwd)
 
 	return base64.RawURLEncoding.EncodeToString(b.Bytes())
 }

@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"github.com/BurntSushi/toml"
+	"io/ioutil"
 	"log"
+
 	"os"
 )
 
@@ -28,23 +31,31 @@ type ServerConfig struct {
 	CaKey    string
 	CaCrt    string
 	NeedAuth bool
-	User     *userInfo
+	User     *UserInfo
 	Pprof    int
 }
 
 type ClientConfig struct {
 	Local    string
 	Proxy    string
-	needAuth bool
-	user     *userInfo
+	NeedAuth bool
+	User     *UserInfo
 	Pprof    int
 	Category string
 }
 
+type FileConfig struct {
+	Category string
+	Server   *ServerConfig
+	Client   *ClientConfig
+}
+
 func ParseConfig() (category string, config interface{}) {
+	var filePath string
+	flag.StringVar(&filePath, "conf", "", "-conf=config.toml.example")
 	flag.StringVar(&category, "category", "client", "-category=http/server/socks5")
 
-	user := &userInfo{}
+	user := &UserInfo{}
 	var (
 		host  string
 		port  string
@@ -76,11 +87,22 @@ func ParseConfig() (category string, config interface{}) {
 	// common
 	flag.BoolVar(&needAuth, "need_auth", false, "-need_auth=false")
 	flag.BoolVar(&Debug, "debug", false, "-debug=false")
-	flag.StringVar(&(user.username), "user", "", "-user=abc")
-	flag.StringVar(&(user.passwd), "passwd", "", "-passwd=def")
+	flag.StringVar(&(user.Username), "User", "", "-User=abc")
+	flag.StringVar(&(user.Passwd), "Passwd", "", "-Passwd=def")
 	flag.IntVar(&Pprof, "pprof", 9999, "-pprof=9999")
 
 	flag.Parse()
+	if filePath != "" {
+		conf := parseFile(filePath)
+		switch conf.Category {
+		case HTTP, SOCKSV5:
+			return conf.Category, conf.Client
+		case SERVER:
+			return conf.Category, conf.Server
+		default:
+			log.Fatal("category error in config file")
+		}
+	}
 
 	serverRequired := map[string]string{
 		"host":     host,
@@ -107,8 +129,8 @@ func ParseConfig() (category string, config interface{}) {
 		newClientConfig := &ClientConfig{
 			Proxy:    fmt.Sprintf("%s:%s", proxyHost, proxyPort),
 			Local:    fmt.Sprintf("%s:%s", localHost, localPort),
-			needAuth: needAuth,
-			user:     user,
+			NeedAuth: needAuth,
+			User:     user,
 			Pprof:    Pprof,
 			Category: category,
 		}
@@ -142,4 +164,22 @@ func ParseConfig() (category string, config interface{}) {
 		os.Exit(1)
 	}
 	return "", nil
+}
+
+func parseFile(path string) *FileConfig {
+	f, err := os.Open(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	body, err := ioutil.ReadAll(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	conf := &FileConfig{}
+	_, err = toml.Decode(string(body), &conf)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return conf
 }
