@@ -13,9 +13,9 @@ import (
 
 var (
 	addr = "localhost:3010"
-	user = &userInfo{
-		username: "aaa",
-		passwd:   "bbb",
+	user = UserInfo{
+		Username: "aaa",
+		Passwd:   "bbb",
 	}
 )
 
@@ -35,7 +35,7 @@ func testServerStart(t *testing.T) {
 		},
 		Handler: http.HandlerFunc(handle(&ServerConfig{
 			NeedAuth: true,
-			User:     user,
+			User:     &user,
 		})),
 	}
 
@@ -67,7 +67,7 @@ func TestServer(t *testing.T) {
 	}
 	req.Header.Set("User-Agent", "curl/7.54.0")
 	req.Header.Set("Accept", "*/*")
-	SetAuthInHeader(user, req)
+	SetAuthInHeader(&user, req)
 
 	tr.DisableCompression = true
 	resp, err := tr.RoundTrip(req)

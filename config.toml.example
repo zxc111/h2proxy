@@ -1,0 +1,20 @@
+category = "server"
+[server]
+	server   ='a'
+	caKey    ='b'
+	caCrt    ='c'
+	needAuth = true
+	pprof   = 1234
+[server.user]
+    username = "123"
+    passwd = "abc"
+
+[client]
+	Local    ='a'
+	Proxy    ='c'
+	needAuth =true
+	Pprof    =12345
+	Category = 'a'
+[client.user]
+       username = "abc"
+       passwd = "321"
