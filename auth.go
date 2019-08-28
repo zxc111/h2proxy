@@ -2,13 +2,14 @@ package h2proxy
 
 import (
 	"net/http"
+	"strings"
 )
 
 // 检查请求中的 auth信息 和 用户信息是否一致
 func CheckAuth(u *UserInfo, r *http.Request) bool {
 	rightAuth := u.ToBase64()
 	for _, auth := range getAuthFromHeader(r) {
-		if auth == rightAuth {
+		if strings.Replace(auth, "Basic ", "", 1) == rightAuth {
 			return true
 		}
 	}
@@ -20,12 +21,12 @@ func getAuthFromHeader(r *http.Request) []string {
 
 	proxyAuth := r.Header.Get("Proxy-Authenticate")
 	result = append(result, proxyAuth)
-	normalUath := r.Header.Get("Authorization")
-	if normalUath != proxyAuth {
-		result = append(result, normalUath)
+	normalAuth := r.Header.Get("Authorization")
+	if normalAuth != proxyAuth {
+		result = append(result, normalAuth)
 	}
 	wwwAuth := r.Header.Get("WWW-Authenticate")
-	if wwwAuth != proxyAuth && wwwAuth != normalUath {
+	if wwwAuth != proxyAuth && wwwAuth != normalAuth {
 		result = append(result, wwwAuth)
 	}
 	return result

@@ -23,5 +23,5 @@ func (u *UserInfo) ToBase64() string {
 	b.WriteByte(':')
 	b.WriteString(u.Passwd)
 
-	return base64.RawURLEncoding.EncodeToString(b.Bytes())
+	return base64.URLEncoding.EncodeToString(b.Bytes())
 }

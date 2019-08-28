@@ -12,6 +12,8 @@ type Http2Server struct {
 	Config *ServerConfig
 }
 
+var noAuthBody = []byte("Proxy Authentication Required")
+
 func (h Http2Server) Start() {
 	config := h.Config
 	server := &http.Server{
@@ -29,8 +31,10 @@ func handle(config *ServerConfig) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if config.NeedAuth && !CheckAuth(config.User, r) {
-			// TODO check auth
-			w.WriteHeader(400)
+			w.Header().Set("Proxy-Authenticate", `Basic realm="Access to internal site"`)
+			w.WriteHeader(407)
+			_, err := w.Write(noAuthBody)
+			Log.Error(err)
 			return
 		}
 		switch r.Method {
