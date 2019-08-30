@@ -31,10 +31,15 @@ func handle(config *ServerConfig) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if config.NeedAuth && !CheckAuth(config.User, r) {
+			Log.Debug("auth failed")
+
 			w.Header().Set("Proxy-Authenticate", `Basic realm="Access to internal site"`)
 			w.WriteHeader(407)
+
 			_, err := w.Write(noAuthBody)
-			Log.Error(err)
+			if err != nil {
+				Log.Error(err)
+			}
 			return
 		}
 		switch r.Method {
