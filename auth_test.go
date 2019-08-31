@@ -13,7 +13,7 @@ func TestAuth(t *testing.T) {
 	}{
 
 		{
-			result: true,
+			result: false,
 		},
 		{
 			UserInfo{

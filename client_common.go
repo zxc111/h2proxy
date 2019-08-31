@@ -31,6 +31,9 @@ func CreateTunnel(from net.Conn, remoteAddr string, config *ClientConfig) {
 	if err != nil {
 		Log.Error(err)
 	}
+	if config.NeedAuth {
+		SetAuthInHeader(config.User, req)
+	}
 
 	resp, err := tr.RoundTrip(req)
 	if err != nil {
@@ -50,17 +53,18 @@ func CreateTunnel(from net.Conn, remoteAddr string, config *ClientConfig) {
 
 	// if category = http, return 200 for connect method Established
 	if config.Category == HTTP {
-		fmt.Fprint(from, "HTTP/1.1 200 Connection Established\r\n\r\n")
+		_, err := fmt.Fprint(from, "HTTP/1.1 200 Connection Established\r\n\r\n")
+		Log.Error(err)
 	}
 
 	if Debug {
 		var wg sync.WaitGroup
 		wg.Add(1)
 		wg.Add(1)
-		go copy(from, resp.Body, &wg, 1)
-		go copy(w, from, &wg, 2)
+		go copyData(from, resp.Body, &wg, 1)
+		go copyData(w, from, &wg, 2)
 		wg.Wait()
-		Log.Info("copy finish")
+		Log.Info("copyData finish")
 	} else {
 		go io.Copy(w, from)
 		io.Copy(from, resp.Body)
@@ -69,7 +73,7 @@ func CreateTunnel(from net.Conn, remoteAddr string, config *ClientConfig) {
 }
 
 // for debug
-func copy(dst io.Writer, src io.Reader, wg *sync.WaitGroup, num int) {
+func copyData(dst io.Writer, src io.Reader, wg *sync.WaitGroup, num int) {
 	defer wg.Done()
 	res := make([]byte, 65535)
 
@@ -83,7 +87,8 @@ func copy(dst io.Writer, src io.Reader, wg *sync.WaitGroup, num int) {
 		if n != 0 {
 			Log.Info(res[:n])
 			Log.Info(string(res[:n]))
-			dst.Write(res[:n])
+			_, err := dst.Write(res[:n])
+			Log.Error(err)
 		}
 	}
 }
