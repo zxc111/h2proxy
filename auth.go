@@ -16,7 +16,7 @@ var authKeys = []string{
 func CheckAuth(u *UserInfo, r *http.Request) bool {
 	rightAuth := u.ToBase64()
 	for auth, _ := range getAuthFromHeader(r) {
-		Log.Debug(auth)
+		//Log.Debug(auth)
 		if auth == rightAuth {
 			return true
 		}

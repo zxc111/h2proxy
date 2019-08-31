@@ -87,7 +87,7 @@ func TestServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(string(b)[:100])
+	t.Log(string(b)[:10])
 }
 
 var key = `-----BEGIN PRIVATE KEY-----
