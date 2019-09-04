@@ -7,9 +7,6 @@ import (
 
 var authKeys = []string{
 	"Proxy-Authorization",
-	"Authorization",
-	"Proxy-Authenticate",
-	"WWW-Authenticate",
 }
 
 // 检查请求中的 auth信息 和 用户信息是否一致
@@ -43,7 +40,5 @@ func getAuthFromHeader(r *http.Request) map[string]struct{} {
 
 // 在 hesder 中设置 auth
 func SetAuthInHeader(u *UserInfo, req *http.Request) {
-	req.Header.Set("Proxy-Authenticate", u.ToBase64())
 	req.Header.Set("Proxy-Authorization", u.ToBase64())
-
 }
