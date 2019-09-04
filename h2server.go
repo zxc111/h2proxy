@@ -95,9 +95,8 @@ func connectMethod(w http.ResponseWriter, r *http.Request) {
 func get(w http.ResponseWriter, r *http.Request) {
 	defer cost(time.Now().UnixNano(), r.URL.RequestURI())
 
-	if f, ok := w.(http.Flusher); ok {
-		f.Flush()
-	} else {
+	f, ok := w.(http.Flusher)
+	if !ok {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -111,6 +110,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 	)
 	cli := http.Client{}
 	req.Header = r.Header
+	req.Header.Del("Proxy-Authorization")
 
 	resp, err := cli.Do(req)
 	if err != nil {
@@ -122,5 +122,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set(k, v[0])
 	}
+	f.Flush()
+
 	io.Copy(to, resp.Body)
 }
