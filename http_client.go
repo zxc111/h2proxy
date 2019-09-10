@@ -93,11 +93,8 @@ func (h HttpProxy) Start() {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.Method {
 			case http.MethodConnect:
-
-				fmt.Println("connectMethod")
 				handler(w, r, config)
 			default:
-
 				handler(w, r, config)
 			}
 		}),

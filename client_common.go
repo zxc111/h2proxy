@@ -54,7 +54,7 @@ func CreateTunnel(from net.Conn, remoteAddr string, config *ClientConfig) {
 	// if category = http, return 200 for connect method Established
 	if config.Category == HTTP {
 		_, err := fmt.Fprint(from, "HTTP/1.1 200 Connection Established\r\n\r\n")
-		Log.Error(err)
+		Log.Debug(err)
 	}
 
 	if Debug {
@@ -85,8 +85,8 @@ func copyData(dst io.Writer, src io.Reader, wg *sync.WaitGroup, num int) {
 			break
 		}
 		if n != 0 {
-			Log.Info(res[:n])
-			Log.Info(string(res[:n]))
+			//Log.Info(res[:n])
+			//Log.Info(string(res[:n]))
 			_, err := dst.Write(res[:n])
 			Log.Error(err)
 		}

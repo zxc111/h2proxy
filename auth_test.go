@@ -23,13 +23,12 @@ func TestAuth(t *testing.T) {
 			http.Request{},
 			false,
 		},
-
 		{
 			UserInfo{
 				"a",
 				"b",
 			},
-			http.Request{},
+			http.Request{Header: http.Header{"Proxy-Authorization": []string{"123"}}},
 			false,
 		},
 		{
@@ -37,23 +36,7 @@ func TestAuth(t *testing.T) {
 				"a",
 				"b",
 			},
-			http.Request{Header: http.Header{"Proxy-Authenticate": []string{"123"}}},
-			false,
-		},
-		{
-			UserInfo{
-				"a",
-				"b",
-			},
-			http.Request{Header: http.Header{"Proxy-Authenticate": []string{"YTpi"}}},
-			true,
-		},
-		{
-			UserInfo{
-				"a",
-				"b",
-			},
-			http.Request{Header: http.Header{"Authorization": []string{"YTpi"}}},
+			http.Request{Header: http.Header{"Proxy-Authorization": []string{"YTpi"}}},
 			true,
 		},
 	}

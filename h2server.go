@@ -16,11 +16,12 @@ var noAuthBody = []byte("Proxy Authentication Required")
 
 func (h Http2Server) Start() {
 	config := h.Config
+	//http.HandleFunc("/test", handle(config))
+
 	server := &http.Server{
 		Addr:    config.Server,
 		Handler: http.HandlerFunc(handle(config)),
 	}
-
 	// require cert.
 	// generate cert for test:
 	// openssl req -new -x509 -days 365 -key test1.key -out test1.crt
