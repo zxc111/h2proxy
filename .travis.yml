@@ -38,3 +38,15 @@ notifications:
 script:
 #  - golangci-lint run       # run a bunch of code checkers/linters in parallel
   - go test -v -race ./...  # Run all the tests with the race detector enabled
+  - env GOOS=linux go build  -o linux cmd/main.go
+  - env GOOS=darwin go build  -o mac cmd/main.go
+  - env GOOS=windows go build  -o win.exe cmd/main.go
+deploy:
+  provider: releases
+  file:
+    - "linux"
+    - "mac"
+    - "win.exe"
+  skip_cleanup: true
+  on:
+    tags: true

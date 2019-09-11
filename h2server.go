@@ -16,11 +16,12 @@ var noAuthBody = []byte("Proxy Authentication Required")
 
 func (h Http2Server) Start() {
 	config := h.Config
+	//http.HandleFunc("/test", handle(config))
+
 	server := &http.Server{
 		Addr:    config.Server,
 		Handler: http.HandlerFunc(handle(config)),
 	}
-
 	// require cert.
 	// generate cert for test:
 	// openssl req -new -x509 -days 365 -key test1.key -out test1.crt
@@ -95,9 +96,8 @@ func connectMethod(w http.ResponseWriter, r *http.Request) {
 func get(w http.ResponseWriter, r *http.Request) {
 	defer cost(time.Now().UnixNano(), r.URL.RequestURI())
 
-	if f, ok := w.(http.Flusher); ok {
-		f.Flush()
-	} else {
+	f, ok := w.(http.Flusher)
+	if !ok {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -111,6 +111,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 	)
 	cli := http.Client{}
 	req.Header = r.Header
+	req.Header.Del("Proxy-Authorization")
 
 	resp, err := cli.Do(req)
 	if err != nil {
@@ -122,5 +123,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set(k, v[0])
 	}
+	f.Flush()
+
 	io.Copy(to, resp.Body)
 }
