@@ -95,6 +95,7 @@ func connectMethod(w http.ResponseWriter, r *http.Request) {
 
 func get(w http.ResponseWriter, r *http.Request) {
 	defer cost(time.Now().UnixNano(), r.URL.RequestURI())
+	defer closeConn(r.Body)
 
 	f, ok := w.(http.Flusher)
 	if !ok {
@@ -125,5 +126,6 @@ func get(w http.ResponseWriter, r *http.Request) {
 	}
 	f.Flush()
 
+	defer closeConn(resp.Body)
 	io.Copy(to, resp.Body)
 }
