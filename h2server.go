@@ -19,8 +19,10 @@ func (h Http2Server) Start() {
 	//http.HandleFunc("/test", handle(config))
 
 	server := &http.Server{
-		Addr:    config.Server,
-		Handler: http.HandlerFunc(handle(config)),
+		Addr:        config.Server,
+		Handler:     http.HandlerFunc(handle(config)),
+		IdleTimeout: 60 * time.Second,
+		ReadTimeout: 60 * time.Second,
 	}
 	// require cert.
 	// generate cert for test:
@@ -77,7 +79,7 @@ func connectMethod(w http.ResponseWriter, r *http.Request) {
 	if strings.Count(remoteAddr, ":") == 0 {
 		remoteAddr += ":443"
 	}
-	conn, err := net.Dial("tcp", remoteAddr)
+	conn, err := net.DialTimeout("tcp", remoteAddr, 60*time.Second)
 	if err != nil {
 		Log.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -95,7 +97,6 @@ func connectMethod(w http.ResponseWriter, r *http.Request) {
 
 func get(w http.ResponseWriter, r *http.Request) {
 	defer cost(time.Now().UnixNano(), r.URL.RequestURI())
-	defer closeConn(r.Body)
 
 	f, ok := w.(http.Flusher)
 	if !ok {
@@ -126,6 +127,5 @@ func get(w http.ResponseWriter, r *http.Request) {
 	}
 	f.Flush()
 
-	defer closeConn(resp.Body)
 	io.Copy(to, resp.Body)
 }
