@@ -91,7 +91,6 @@ func connectMethod(w http.ResponseWriter, r *http.Request) {
 	defer closeConn(r.Body)
 
 	go io.Copy(conn, r.Body)
-
 	io.Copy(to, conn)
 }
 
@@ -111,7 +110,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 		"http://"+r.Host+r.RequestURI,
 		r.Body,
 	)
-	cli := http.Client{}
+	cli := http.Client{Timeout: 10 * time.Minute}
 	req.Header = r.Header
 	req.Header.Del("Proxy-Authorization")
 

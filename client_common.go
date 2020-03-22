@@ -97,7 +97,7 @@ func copyData(dst io.Writer, src io.Reader, wg *sync.WaitGroup, num int) {
 func NewTransport(proxyAddr string) *http2.Transport {
 	return &http2.Transport{
 		DialTLS: func(network, addr string, config *tls.Config) (net.Conn, error) {
-			return tls.Dial("tcp", proxyAddr, &tls.Config{
+			return tls.DialWithDialer(&net.Dialer{Timeout: 10*time.Minute}, "tcp", proxyAddr, &tls.Config{
 				NextProtos:         []string{"h2"},
 				InsecureSkipVerify: true,
 			})
