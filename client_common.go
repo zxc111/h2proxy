@@ -1,6 +1,7 @@
 package h2proxy
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"golang.org/x/net/http2"
@@ -13,7 +14,7 @@ import (
 )
 
 // create http request with connect method
-func CreateTunnel(from net.Conn, remoteAddr string, config *ClientConfig) {
+func CreateTunnel(ctx context.Context, from net.Conn, remoteAddr string, config *ClientConfig) {
 
 	defer cost(time.Now().UnixNano(), remoteAddr)
 
@@ -56,20 +57,29 @@ func CreateTunnel(from net.Conn, remoteAddr string, config *ClientConfig) {
 		_, err := fmt.Fprint(from, "HTTP/1.1 200 Connection Established\r\n\r\n")
 		Log.Debug(err)
 	}
+	exit1 := make(chan struct{})
 
-	if Debug {
-		var wg sync.WaitGroup
-		wg.Add(1)
-		wg.Add(1)
-		go copyData(from, resp.Body, &wg, 1)
-		go copyData(w, from, &wg, 2)
-		wg.Wait()
-		Log.Info("copyData finish")
-	} else {
-		go io.Copy(w, from)
-		io.Copy(from, resp.Body)
+	go func() {
+		if Debug {
+			var wg sync.WaitGroup
+			wg.Add(1)
+			wg.Add(1)
+			go copyData(from, resp.Body, &wg, 1)
+			go copyData(w, from, &wg, 2)
+			wg.Wait()
+			Log.Info("copyData finish")
+		} else {
+			go io.Copy(w, from)
+			io.Copy(from, resp.Body)
+
+		}
+		close(exit1)
+
+	}()
+	select {
+	case <-exit1:
+	case <-ctx.Done():
 	}
-
 }
 
 // for debug
@@ -97,7 +107,7 @@ func copyData(dst io.Writer, src io.Reader, wg *sync.WaitGroup, num int) {
 func NewTransport(proxyAddr string) *http2.Transport {
 	return &http2.Transport{
 		DialTLS: func(network, addr string, config *tls.Config) (net.Conn, error) {
-			return tls.DialWithDialer(&net.Dialer{Timeout: 10*time.Minute}, "tcp", proxyAddr, &tls.Config{
+			return tls.DialWithDialer(&net.Dialer{Timeout: 10 * time.Minute}, "tcp", proxyAddr, &tls.Config{
 				NextProtos:         []string{"h2"},
 				InsecureSkipVerify: true,
 			})
