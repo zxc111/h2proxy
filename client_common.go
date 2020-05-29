@@ -79,6 +79,7 @@ func CreateTunnel(ctx context.Context, from net.Conn, remoteAddr string, config 
 	select {
 	case <-exit1:
 	case <-ctx.Done():
+	case <-time.Tick(time.Hour):
 	}
 }
 

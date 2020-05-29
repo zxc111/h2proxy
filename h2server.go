@@ -1,6 +1,7 @@
 package h2proxy
 
 import (
+	"context"
 	"io"
 	"net"
 	"net/http"
@@ -47,7 +48,8 @@ func handle(config *ServerConfig) func(w http.ResponseWriter, r *http.Request) {
 		}
 		switch r.Method {
 		case http.MethodConnect:
-			connectMethod(w, r)
+			ctx, _ := context.WithTimeout(context.Background(), time.Hour)
+			connectMethod(ctx, w, r)
 		default:
 			get(w, r)
 		}
@@ -66,7 +68,7 @@ func (fw flushWriter) Write(p []byte) (n int, err error) {
 	return
 }
 
-func connectMethod(w http.ResponseWriter, r *http.Request) {
+func connectMethod(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	defer cost(time.Now().UnixNano(), r.URL.RequestURI())
 
 	if f, ok := w.(http.Flusher); ok {
@@ -90,8 +92,18 @@ func connectMethod(w http.ResponseWriter, r *http.Request) {
 	to := flushWriter{w}
 	defer closeConn(r.Body)
 
-	go io.Copy(conn, r.Body)
-	io.Copy(to, conn)
+	exit := make(chan struct{})
+	go func() {
+		go io.Copy(conn, r.Body)
+		io.Copy(to, conn)
+		close(exit)
+	}()
+
+	select {
+	case <-ctx.Done():
+	case <-exit:
+	case <-time.Tick(time.Hour):
+	}
 }
 
 func get(w http.ResponseWriter, r *http.Request) {
