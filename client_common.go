@@ -8,7 +8,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 )
@@ -18,7 +17,7 @@ func CreateTunnel(ctx context.Context, from net.Conn, remoteAddr string, config 
 
 	defer cost(time.Now().UnixNano(), remoteAddr)
 
-	tr := NewTransport(config.Proxy)
+	tr := NewTransportWithProxy(config.Proxy)
 
 	r, w := io.Pipe()
 
@@ -44,14 +43,6 @@ func CreateTunnel(ctx context.Context, from net.Conn, remoteAddr string, config 
 
 	defer closeConn(resp.Body)
 
-	if resp.StatusCode != 200 {
-		Log.Info(resp.StatusCode)
-		// TODO
-		io.Copy(os.Stdout, resp.Body)
-		Log.Info("Connect Proxy Server Error")
-		return
-	}
-
 	// if category = http, return 200 for connect method Established
 	if config.Category == HTTP {
 		_, err := fmt.Fprint(from, "HTTP/1.1 200 Connection Established\r\n\r\n")
@@ -71,10 +62,8 @@ func CreateTunnel(ctx context.Context, from net.Conn, remoteAddr string, config 
 		} else {
 			go io.Copy(w, from)
 			io.Copy(from, resp.Body)
-
 		}
 		close(exit1)
-
 	}()
 	select {
 	case <-exit1:
@@ -105,10 +94,10 @@ func copyData(dst io.Writer, src io.Reader, wg *sync.WaitGroup, num int) {
 }
 
 // make new transport
-func NewTransport(proxyAddr string) *http2.Transport {
+func NewTransportWithProxy(proxyAddr string) *http2.Transport {
 	return &http2.Transport{
 		DialTLS: func(network, addr string, config *tls.Config) (net.Conn, error) {
-			return tls.DialWithDialer(&net.Dialer{Timeout: 10 * time.Minute}, "tcp", proxyAddr, &tls.Config{
+			return tls.DialWithDialer(&net.Dialer{Timeout: time.Minute}, "tcp", proxyAddr, &tls.Config{
 				NextProtos:         []string{"h2"},
 				InsecureSkipVerify: true,
 			})

@@ -54,7 +54,7 @@ func GetMethod(ctx context.Context, from *http.Request, remote string, to net.Co
 	if err != nil {
 		Log.Error(err)
 	}
-	tr := NewTransport(config.Proxy)
+	tr := NewTransportWithProxy(config.Proxy)
 
 	remoteAddr := remote
 	Log.Info(remoteAddr)

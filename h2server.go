@@ -81,7 +81,19 @@ func connectMethod(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 	if strings.Count(remoteAddr, ":") == 0 {
 		remoteAddr += ":443"
 	}
-	conn, err := net.DialTimeout("tcp", remoteAddr, 60*time.Second)
+	//d := net.Dialer{
+	//	Timeout:       0,
+	//	Deadline:      time.Time{},
+	//	KeepAlive:     0,
+	//	Resolver:      nil,
+	//	Cancel:        nil,
+	//	Control:       nil,
+	//}
+	d := new(net.Dialer)
+	d.KeepAlive = -1
+	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	conn, err := d.DialContext(ctx, "tcp", remoteAddr)
+
 	if err != nil {
 		Log.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -103,6 +115,7 @@ func connectMethod(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 	case <-ctx.Done():
 	case <-exit:
 	case <-time.Tick(time.Hour):
+		cancel()
 	}
 }
 
