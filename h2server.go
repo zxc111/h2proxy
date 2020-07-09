@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -81,16 +82,9 @@ func connectMethod(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 	if strings.Count(remoteAddr, ":") == 0 {
 		remoteAddr += ":443"
 	}
-	//d := net.Dialer{
-	//	Timeout:       0,
-	//	Deadline:      time.Time{},
-	//	KeepAlive:     0,
-	//	Resolver:      nil,
-	//	Cancel:        nil,
-	//	Control:       nil,
-	//}
+
 	d := new(net.Dialer)
-	d.KeepAlive = -1
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 	conn, err := d.DialContext(ctx, "tcp", remoteAddr)
 
@@ -99,17 +93,65 @@ func connectMethod(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	conn.SetDeadline(time.Now().Add(time.Minute))
 	defer closeConn(conn)
 
 	to := flushWriter{w}
 	defer closeConn(r.Body)
 
 	exit := make(chan struct{})
-	go func() {
-		go io.Copy(conn, r.Body)
-		io.Copy(to, conn)
-		close(exit)
-	}()
+	//go func() {
+	//	go io.Copy(conn, r.Body)
+	//	io.Copy(to, conn)
+	//	close(exit)
+	//}()
+
+	wg := new(sync.WaitGroup)
+	wg.Add(2)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		buf := make([]byte, 1024*100)
+		for {
+			n, err := r.Body.Read(buf)
+			if err != nil {
+				if err != io.EOF {
+					Log.Error(err)
+				}
+				return
+			}
+			_, err = conn.Write(buf[:n])
+			if err != nil {
+				if err != io.EOF {
+					Log.Error(err)
+				}
+				return
+			}
+			conn.SetDeadline(time.Now().Add(time.Minute))
+		}
+	}(wg)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		buf := make([]byte, 1024*100)
+		for {
+			n, err := conn.Read(buf)
+			if err != nil {
+				if err != io.EOF {
+					Log.Error(err)
+				}
+				return
+			}
+			_, err = to.Write(buf[:n])
+
+			if err != nil {
+				if err != io.EOF {
+					Log.Error(err)
+				}
+				return
+			}
+			conn.SetDeadline(time.Now().Add(time.Minute))
+		}
+	}(wg)
+	wg.Wait()
 
 	select {
 	case <-ctx.Done():

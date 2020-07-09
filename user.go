@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"strings"
 )
 
 type UserInfo struct {
@@ -22,6 +23,5 @@ func (u *UserInfo) ToBase64() string {
 	b := bytes.NewBuffer([]byte(u.Username))
 	b.WriteByte(':')
 	b.WriteString(u.Passwd)
-
-	return base64.URLEncoding.EncodeToString(b.Bytes())
+	return strings.ReplaceAll(base64.URLEncoding.EncodeToString(b.Bytes()), "=", "")
 }

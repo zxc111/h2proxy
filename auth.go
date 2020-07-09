@@ -32,6 +32,7 @@ func getAuthFromHeader(r *http.Request) map[string]struct{} {
 		if auth == "" {
 			continue
 		}
+		auth = strings.ReplaceAll(auth, "=", "")
 		result[auth] = struct{}{}
 	}
 
