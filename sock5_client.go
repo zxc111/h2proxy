@@ -169,7 +169,8 @@ func handleConnection(conn net.Conn, config *ClientConfig) {
 	}
 
 	remoteAddr := "http://" + dest.host + ":" + dest.port
-	ctx, _ := context.WithTimeout(context.Background(), time.Hour)
+	ctx, cancle := context.WithTimeout(context.Background(), time.Hour)
+	defer cancle()
 	CreateTunnel(ctx, conn, remoteAddr, config)
 }
 
