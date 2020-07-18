@@ -100,17 +100,12 @@ func connectMethod(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 	defer closeConn(r.Body)
 
 	exit := make(chan struct{})
-	//go func() {
-	//	go io.Copy(conn, r.Body)
-	//	io.Copy(to, conn)
-	//	close(exit)
-	//}()
 
 	wg := new(sync.WaitGroup)
 	wg.Add(2)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		buf := make([]byte, 1024*100)
+		buf := make([]byte, 1024*10)
 		for {
 			n, err := r.Body.Read(buf)
 			if err != nil {
@@ -131,7 +126,7 @@ func connectMethod(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 	}(wg)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		buf := make([]byte, 1024*100)
+		buf := make([]byte, 1024*10)
 		for {
 			n, err := conn.Read(buf)
 			if err != nil {
