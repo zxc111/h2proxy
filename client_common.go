@@ -18,16 +18,20 @@ func CreateTunnel(ctx context.Context, from net.Conn, remoteAddr string, config 
 	defer cost(time.Now().UnixNano(), remoteAddr)
 
 	tr := NewTransportWithProxy(config.Proxy)
-
+	defer tr.CloseIdleConnections()
 	r, w := io.Pipe()
+	defer r.Close()
+	defer w.Close()
 
 	Log.Info(remoteAddr)
-
-	req, err := http.NewRequest(
+	timeoutCtx, cancel := context.WithCancel(ctx)
+	req, err := http.NewRequestWithContext(
+		timeoutCtx,
 		http.MethodConnect,
 		remoteAddr,
 		r,
 	)
+
 	if err != nil {
 		Log.Error(err)
 	}
@@ -51,18 +55,43 @@ func CreateTunnel(ctx context.Context, from net.Conn, remoteAddr string, config 
 	exit1 := make(chan struct{})
 
 	go func() {
-		if Debug {
-			var wg sync.WaitGroup
-			wg.Add(1)
-			wg.Add(1)
-			go copyData(from, resp.Body, &wg, 1)
-			go copyData(w, from, &wg, 2)
-			wg.Wait()
-			Log.Info("copyData finish")
-		} else {
-			go io.Copy(w, from)
-			io.Copy(from, resp.Body)
-		}
+		var wg sync.WaitGroup
+		wg.Add(2)
+		// read from remote
+		timer := time.AfterFunc(5*time.Second, func() {
+			cancel()
+		})
+
+		go func(dst net.Conn, src io.ReadCloser, group *sync.WaitGroup, nn int) {
+			defer wg.Done()
+			for {
+				timer.Reset(5 * time.Second)
+				res := make([]byte, 10240)
+				n, err := src.Read(res)
+				if err != nil {
+					if io.EOF != err {
+						if e, ok := err.(net.Error); ok && e.Timeout() {
+						} else {
+							Log.Info(err)
+						}
+					}
+					return
+				}
+
+				dst.SetWriteDeadline(time.Now().Add(5 * time.Second))
+				if n != 0 {
+					_, err := dst.Write(res[:n])
+					if err != nil {
+						Log.Error(err)
+						return
+					}
+				}
+			}
+		}(from, resp.Body, &wg, 1)
+
+		go copyData(w, from, &wg, 2, cancel)
+		wg.Wait()
+		Log.Info("copyData finish")
 		close(exit1)
 	}()
 	select {
@@ -72,23 +101,29 @@ func CreateTunnel(ctx context.Context, from net.Conn, remoteAddr string, config 
 	}
 }
 
-// for debug
-func copyData(dst io.Writer, src io.Reader, wg *sync.WaitGroup, num int) {
+func copyData(dst *io.PipeWriter, src net.Conn, wg *sync.WaitGroup, nn int, ctxCancel context.CancelFunc) {
 	defer wg.Done()
 	res := make([]byte, 65535)
 
+	defer ctxCancel()
 	for {
+		src.SetReadDeadline(time.Now().Add(10 * time.Second))
 		n, err := src.Read(res)
-		Log.Debugf("read %d", num)
 		if err != nil {
-			Log.Info("eof")
-			break
+			if io.EOF != err {
+				if e, ok := err.(net.Error); ok && e.Timeout() {
+				} else {
+					Log.Info(err)
+				}
+			}
+			return
 		}
 		if n != 0 {
-			//Log.Info(res[:n])
-			//Log.Info(string(res[:n]))
 			_, err := dst.Write(res[:n])
-			Log.Error(err)
+			if err != nil {
+				Log.Error(err)
+				return
+			}
 		}
 	}
 }
