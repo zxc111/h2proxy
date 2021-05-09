@@ -1,10 +1,12 @@
 package h2proxy
 
 import (
+	"context"
 	"io"
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -19,8 +21,10 @@ func (h Http2Server) Start() {
 	//http.HandleFunc("/test", handle(config))
 
 	server := &http.Server{
-		Addr:    config.Server,
-		Handler: http.HandlerFunc(handle(config)),
+		Addr:        config.Server,
+		Handler:     http.HandlerFunc(handle(config)),
+		IdleTimeout: 60 * time.Second,
+		ReadTimeout: 60 * time.Second,
 	}
 	// require cert.
 	// generate cert for test:
@@ -45,7 +49,8 @@ func handle(config *ServerConfig) func(w http.ResponseWriter, r *http.Request) {
 		}
 		switch r.Method {
 		case http.MethodConnect:
-			connectMethod(w, r)
+			ctx, _ := context.WithTimeout(context.Background(), time.Hour)
+			connectMethod(ctx, w, r)
 		default:
 			get(w, r)
 		}
@@ -64,7 +69,7 @@ func (fw flushWriter) Write(p []byte) (n int, err error) {
 	return
 }
 
-func connectMethod(w http.ResponseWriter, r *http.Request) {
+func connectMethod(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	defer cost(time.Now().UnixNano(), r.URL.RequestURI())
 
 	if f, ok := w.(http.Flusher); ok {
@@ -77,25 +82,82 @@ func connectMethod(w http.ResponseWriter, r *http.Request) {
 	if strings.Count(remoteAddr, ":") == 0 {
 		remoteAddr += ":443"
 	}
-	conn, err := net.Dial("tcp", remoteAddr)
+
+	d := new(net.Dialer)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	conn, err := d.DialContext(ctx, "tcp", remoteAddr)
+
 	if err != nil {
 		Log.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	conn.SetDeadline(time.Now().Add(time.Minute))
 	defer closeConn(conn)
 
 	to := flushWriter{w}
 	defer closeConn(r.Body)
 
-	go io.Copy(conn, r.Body)
+	exit := make(chan struct{})
 
-	io.Copy(to, conn)
+	wg := new(sync.WaitGroup)
+	wg.Add(2)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		buf := make([]byte, 1024*10)
+		for {
+			n, err := r.Body.Read(buf)
+			if err != nil {
+				if err != io.EOF {
+					Log.Error(err)
+				}
+				return
+			}
+			_, err = conn.Write(buf[:n])
+			if err != nil {
+				if err != io.EOF {
+					Log.Error(err)
+				}
+				return
+			}
+			conn.SetDeadline(time.Now().Add(time.Minute))
+		}
+	}(wg)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		buf := make([]byte, 1024*10)
+		for {
+			n, err := conn.Read(buf)
+			if err != nil {
+				if err != io.EOF {
+					Log.Error(err)
+				}
+				return
+			}
+			_, err = to.Write(buf[:n])
+
+			if err != nil {
+				if err != io.EOF {
+					Log.Error(err)
+				}
+				return
+			}
+			conn.SetDeadline(time.Now().Add(time.Minute))
+		}
+	}(wg)
+	wg.Wait()
+
+	select {
+	case <-ctx.Done():
+	case <-exit:
+	case <-time.Tick(time.Hour):
+		cancel()
+	}
 }
 
 func get(w http.ResponseWriter, r *http.Request) {
 	defer cost(time.Now().UnixNano(), r.URL.RequestURI())
-	defer closeConn(r.Body)
 
 	f, ok := w.(http.Flusher)
 	if !ok {
@@ -110,7 +172,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 		"http://"+r.Host+r.RequestURI,
 		r.Body,
 	)
-	cli := http.Client{}
+	cli := http.Client{Timeout: 10 * time.Minute}
 	req.Header = r.Header
 	req.Header.Del("Proxy-Authorization")
 
@@ -126,6 +188,5 @@ func get(w http.ResponseWriter, r *http.Request) {
 	}
 	f.Flush()
 
-	defer closeConn(resp.Body)
 	io.Copy(to, resp.Body)
 }

@@ -15,7 +15,7 @@ var (
 func closeConn(conn io.Closer) {
 	err := conn.Close()
 	if err != nil {
-		Log.Info(err)
+		Log.Error(err)
 	}
 }
 

@@ -49,7 +49,7 @@ func TestServer(t *testing.T) {
 	InitLogger()
 	go testServerStart(t)
 
-	tr := NewTransport(addr)
+	tr := NewTransportWithProxy(addr)
 
 	fmt.Println(Log)
 	remoteAddr := "http://www.baidu.com/s?ie=utf-8&f=8&rsv_bp=1&rsv_idx=1&tn=baidu&wd=test&rsv_pq=b490c49a0000626b&rsv_t=132ffj2JcJlsvnHjGuDY6aR7woxPXQeCGImDWkR73XJBOuQrytnW9Racfew&rqlang=cn&rsv_enter=1&rsv_sug3=4&rsv_sug1=4&rsv_sug7=100&rsv_sug2=0&inputT=764&rsv_sug4=764"
