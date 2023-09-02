@@ -49,7 +49,8 @@ func handle(config *ServerConfig) func(w http.ResponseWriter, r *http.Request) {
 		}
 		switch r.Method {
 		case http.MethodConnect:
-			ctx, _ := context.WithTimeout(context.Background(), time.Hour)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+			defer cancel()
 			connectMethod(ctx, w, r)
 		default:
 			get(w, r)
@@ -85,7 +86,8 @@ func connectMethod(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 
 	d := new(net.Dialer)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	ctx, cancel := context.WithTimeout(ctx, time.Hour)
+	defer cancel()
 	conn, err := d.DialContext(ctx, "tcp", remoteAddr)
 
 	if err != nil {
@@ -147,11 +149,12 @@ func connectMethod(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 		}
 	}(wg)
 	wg.Wait()
-
+	ticker := time.NewTicker(time.Hour)
+	defer ticker.Stop()
 	select {
 	case <-ctx.Done():
 	case <-exit:
-	case <-time.Tick(time.Hour):
+	case <-ticker.C:
 		cancel()
 	}
 }

@@ -28,8 +28,8 @@ func handler(w http.ResponseWriter, r *http.Request, config *ClientConfig) {
 		defer closeConn(clientConn)
 
 		remote := "http://" + r.URL.Host
-		ctx, _ := context.WithTimeout(context.Background(), time.Hour)
-
+		ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+		defer cancel()
 		CreateTunnel(ctx, clientConn, remote, config)
 	default:
 		remote := r.URL.Scheme + "://" + r.URL.Host

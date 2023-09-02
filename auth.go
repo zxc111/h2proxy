@@ -12,7 +12,7 @@ var authKeys = []string{
 // 检查请求中的 auth信息 和 用户信息是否一致
 func CheckAuth(u *UserInfo, r *http.Request) bool {
 	rightAuth := u.ToBase64()
-	for auth, _ := range getAuthFromHeader(r) {
+	for auth := range getAuthFromHeader(r) {
 		//Log.Debug(auth)
 		if auth == rightAuth {
 			return true
