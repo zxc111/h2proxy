@@ -3,6 +3,7 @@ package h2proxy
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"time"
@@ -34,7 +35,7 @@ func auth(conn net.Conn) error {
 		0x80 - 0xFE为私人方法保留
 		0xFF 无可接受的方法*/
 
-	res := make([]byte, 2)
+	res := make([]byte, 10)
 	_, err := conn.Read(res)
 	if err != nil {
 		Log.Error(err)
@@ -43,7 +44,14 @@ func auth(conn net.Conn) error {
 	Log.Info(res)
 	methodLength := res[1]
 	method := make([]byte, methodLength)
-	conn.Read(method)
+	_, err = conn.Read(method)
+	if err != nil {
+		if err != io.EOF {
+			Log.Error(err)
+			return err
+		}
+		return nil
+	}
 	Log.Info(method)
 
 	/*	服务器从客户端提供的方法中选择一个并通过以下消息通知客户端（以字节为单位）：
@@ -65,7 +73,14 @@ func auth(conn net.Conn) error {
 		0x08不支持的地址类型
 		0x09 - 0xFF未定义*/
 	resp := []byte{5, 0}
-	conn.Write(resp)
+	_, err = conn.Write(resp)
+	if err != nil {
+		if err != io.EOF {
+			Log.Error(err)
+			return err
+		}
+		return nil
+	}
 	return nil
 }
 
@@ -93,16 +108,20 @@ func buildDestConn(conn net.Conn) (*targetInfo, error) {
 	}
 	Log.Info(res[:n])
 
-	if res[1] != 1 {
-		Log.Warn("MEHOTDS NOT SUPPORTED")
+	cmd := res[1]
+	aypr := res[3]
+
+	if cmd != 1 {
+		Log.Warn("MEHOTDS NOT SUPPORTED ", res[1])
 		resp := []byte{5, 7, 0}
 		conn.Write(resp)
 		return nil, err
 	}
 
 	target := targetInfo{}
-	if res[3] == 1 {
-		// ipv4
+
+	switch aypr {
+	case 1: // ipv4
 		addr := fmt.Sprintf("%d.%d.%d.%d", res[4], res[5], res[6], res[7])
 		port := int(res[8])*256 + int(res[9])
 		target.port = strconv.Itoa(port)
@@ -110,8 +129,7 @@ func buildDestConn(conn net.Conn) (*targetInfo, error) {
 
 		resp := []byte{5, 0, 0, res[3], res[4], res[5], res[6], res[7], res[8], res[9]}
 		conn.Write(resp)
-	} else if res[3] == 3 {
-		// domain`
+	case 3: // host & port
 		length := int(res[4])
 		addr := res[5 : 5+length]
 		target.host = string(addr)
@@ -119,11 +137,16 @@ func buildDestConn(conn net.Conn) (*targetInfo, error) {
 		target.port = strconv.Itoa(port)
 		resp := []byte{5, 0, 0, res[3], res[4]}
 		resp = append(resp, res[5:n]...)
-		Log.Info(string(resp))
-		Log.Info((resp))
+		Log.Debug(string(resp))
+		Log.Debug((resp))
 
 		conn.Write(resp)
-	} else if res[3] == 4 {
+	case 4:
+		resp := []byte{5, 8, 0}
+		conn.Write((resp))
+		Log.Info("IPV6 Not Implemented")
+		return nil, errors.New("ipv6 NotImplemnted")
+	default:
 		resp := []byte{5, 8, 0}
 		conn.Write((resp))
 		Log.Info("IPV6 Not Implemented")

@@ -58,14 +58,14 @@ func CreateTunnel(ctx context.Context, from net.Conn, remoteAddr string, config 
 		var wg sync.WaitGroup
 		wg.Add(2)
 		// read from remote
-		timer := time.AfterFunc(5*time.Second, func() {
+		timer := time.AfterFunc(60*time.Second, func() {
 			cancel()
 		})
 
 		go func(dst net.Conn, src io.ReadCloser, group *sync.WaitGroup, nn int) {
 			defer wg.Done()
 			for {
-				timer.Reset(5 * time.Second)
+				timer.Reset(50 * time.Second)
 				res := make([]byte, 10240)
 				n, err := src.Read(res)
 				if err != nil {
@@ -78,7 +78,7 @@ func CreateTunnel(ctx context.Context, from net.Conn, remoteAddr string, config 
 					return
 				}
 
-				dst.SetWriteDeadline(time.Now().Add(5 * time.Second))
+				dst.SetWriteDeadline(time.Now().Add(50 * time.Second))
 				if n != 0 {
 					_, err := dst.Write(res[:n])
 					if err != nil {
@@ -107,7 +107,7 @@ func copyData(dst *io.PipeWriter, src net.Conn, wg *sync.WaitGroup, nn int, ctxC
 
 	defer ctxCancel()
 	for {
-		src.SetReadDeadline(time.Now().Add(10 * time.Second))
+		src.SetReadDeadline(time.Now().Add(50 * time.Second))
 		n, err := src.Read(res)
 		if err != nil {
 			if io.EOF != err {
