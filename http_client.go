@@ -17,6 +17,8 @@ type HttpProxy struct {
 }
 
 func handler(w http.ResponseWriter, r *http.Request, config *ClientConfig) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	defer cancel()
 	switch r.Method {
 	case http.MethodConnect:
 		hijacker, _ := w.(http.Hijacker)
@@ -28,8 +30,6 @@ func handler(w http.ResponseWriter, r *http.Request, config *ClientConfig) {
 		defer closeConn(clientConn)
 
 		remote := "http://" + r.URL.Host
-		ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
-		defer cancel()
 		CreateTunnel(ctx, clientConn, remote, config)
 	default:
 		remote := r.URL.Scheme + "://" + r.URL.Host
@@ -41,13 +41,11 @@ func handler(w http.ResponseWriter, r *http.Request, config *ClientConfig) {
 			return
 		}
 		defer closeConn(clientConn)
-		ctx, _ := context.WithTimeout(context.Background(), time.Hour)
-
 		GetMethod(ctx, r, remote, clientConn, config)
 	}
 }
 
-// not connectMethod method (http not https,don't need tunnel)
+// GetMethod not connectMethod method (http not https,don't need to tunnel)
 func GetMethod(ctx context.Context, from *http.Request, remote string, to net.Conn, config *ClientConfig) {
 
 	dump, err := httputil.DumpRequest(from, true)

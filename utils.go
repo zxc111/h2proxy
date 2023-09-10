@@ -8,8 +8,7 @@ import (
 )
 
 var (
-	Log  *zap.SugaredLogger
-	once = new(sync.Once)
+	Log *zap.SugaredLogger
 )
 
 func closeConn(conn io.Closer) {

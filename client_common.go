@@ -25,6 +25,7 @@ func CreateTunnel(ctx context.Context, from net.Conn, remoteAddr string, config 
 
 	Log.Info(remoteAddr)
 	timeoutCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	req, err := http.NewRequestWithContext(
 		timeoutCtx,
 		http.MethodConnect,
