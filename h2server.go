@@ -95,7 +95,7 @@ func connectMethod(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	conn.SetDeadline(time.Now().Add(time.Minute))
+	err = conn.SetDeadline(time.Now().Add(time.Minute))
 	defer closeConn(conn)
 
 	to := flushWriter{w}
@@ -191,5 +191,8 @@ func get(w http.ResponseWriter, r *http.Request) {
 	}
 	f.Flush()
 
-	io.Copy(to, resp.Body)
+	_, err = io.Copy(to, resp.Body)
+	if err != nil {
+		Log.Errorw("copyErr", err)
+	}
 }
