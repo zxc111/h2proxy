@@ -49,8 +49,7 @@ func handle(config *ServerConfig) func(w http.ResponseWriter, r *http.Request) {
 		}
 		switch r.Method {
 		case http.MethodConnect:
-			ctx, _ := context.WithTimeout(context.Background(), time.Hour)
-			connectMethod(ctx, w, r)
+			connectMethod(r.Context(), w, r)
 		default:
 			get(w, r)
 		}
@@ -83,9 +82,7 @@ func connectMethod(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 		remoteAddr += ":443"
 	}
 
-	d := new(net.Dialer)
-
-	conn, err := d.DialContext(ctx, "tcp", remoteAddr)
+	conn, err := net.DialTimeout("tcp", remoteAddr, time.Second*5)
 
 	if err != nil {
 		Log.Error(err)
