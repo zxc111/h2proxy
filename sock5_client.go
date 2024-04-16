@@ -1,9 +1,11 @@
 package h2proxy
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strconv"
+	"time"
 
 	//"os"
 	"errors"
@@ -167,7 +169,9 @@ func handleConnection(conn net.Conn, config *ClientConfig) {
 	}
 
 	remoteAddr := "http://" + dest.host + ":" + dest.port
-	CreateTunnel(conn, remoteAddr, config)
+	ctx, cancle := context.WithTimeout(context.Background(), time.Hour)
+	defer cancle()
+	CreateTunnel(ctx, conn, remoteAddr, config)
 }
 
 func (s Sock5Proxy) Start() {

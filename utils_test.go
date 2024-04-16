@@ -69,3 +69,11 @@ func captureOutput(funcToRun func(), debug bool) string {
 
 	return buffer.String()
 }
+
+func TestCert(t *testing.T) {
+	//cert, err := tls.LoadX509KeyPair("test.crt", "test.key")
+	//if err != nil {
+	//	t.Fatal(err)
+	//}
+	//cert.PrivateKey.(*rsa.PrivateKey).Validate()
+}

@@ -11,10 +11,10 @@ http2 proxy server &amp;&amp; client
 ## 如何运行
 从 [release](https://github.com/zxc111/h2proxy/releases) 下载对应系统编译好的
 ```bash
-./linux -f conf.toml
-./mac -f conf.toml
+./linux -conf conf.toml
+./mac -conf conf.toml
 或是
-./win.exe -f conf.toml
+./win.exe -conf conf.toml
 ```
 ### 服务端
 ```toml

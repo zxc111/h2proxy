@@ -2,12 +2,14 @@ package h2proxy
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"time"
 )
 
 type HttpProxy struct {
@@ -26,7 +28,9 @@ func handler(w http.ResponseWriter, r *http.Request, config *ClientConfig) {
 		defer closeConn(clientConn)
 
 		remote := "http://" + r.URL.Host
-		CreateTunnel(clientConn, remote, config)
+		ctx, _ := context.WithTimeout(context.Background(), time.Hour)
+
+		CreateTunnel(ctx, clientConn, remote, config)
 	default:
 		remote := r.URL.Scheme + "://" + r.URL.Host
 
@@ -37,19 +41,20 @@ func handler(w http.ResponseWriter, r *http.Request, config *ClientConfig) {
 			return
 		}
 		defer closeConn(clientConn)
+		ctx, _ := context.WithTimeout(context.Background(), time.Hour)
 
-		GetMethod(r, remote, clientConn, config)
+		GetMethod(ctx, r, remote, clientConn, config)
 	}
 }
 
 // not connectMethod method (http not https,don't need tunnel)
-func GetMethod(from *http.Request, remote string, to net.Conn, config *ClientConfig) {
+func GetMethod(ctx context.Context, from *http.Request, remote string, to net.Conn, config *ClientConfig) {
 
 	dump, err := httputil.DumpRequest(from, true)
 	if err != nil {
 		Log.Error(err)
 	}
-	tr := NewTransport(config.Proxy)
+	tr := NewTransportWithProxy(config.Proxy)
 
 	remoteAddr := remote
 	Log.Info(remoteAddr)
@@ -80,8 +85,15 @@ func GetMethod(from *http.Request, remote string, to net.Conn, config *ClientCon
 		Log.Info("Connect Proxy Server Error")
 		return
 	}
-	io.Copy(to, resp.Body)
-
+	exit := make(chan struct{})
+	go func() {
+		io.Copy(to, resp.Body)
+		close(exit)
+	}()
+	select {
+	case <-exit:
+	case <-ctx.Done():
+	}
 }
 
 func (h HttpProxy) Start() {
